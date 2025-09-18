@@ -89,7 +89,19 @@ class ActuatorClient:
         for path in commit_paths:
             value = self._get_nested_value(data, path)
             if value:
-                return str(value)
+                # If value is a string, return it directly
+                if isinstance(value, str):
+                    return value
+                # If value is a dict (like git.commit object), try to extract from it
+                elif isinstance(value, dict):
+                    # Try to get 'id' first, then 'abbrev'
+                    if 'id' in value:
+                        return str(value['id'])
+                    elif 'abbrev' in value:
+                        return str(value['abbrev'])
+                # Otherwise convert to string
+                else:
+                    return str(value)
         
         return None
     

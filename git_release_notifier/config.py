@@ -21,12 +21,13 @@ def load_config(config_path: str = "config.yaml") -> Config:
         data = yaml.safe_load(file)
     
     projects = []
-    for project_data in data['projects']:
-        project = ProjectConfig(
-            name=project_data['name'],
-            repoUrl=project_data['repoUrl'],
-            env=project_data['env']
-        )
-        projects.append(project)
+    if data and 'projects' in data:
+        for project_data in data['projects']:
+            project = ProjectConfig(
+                name=project_data['name'],
+                repoUrl=project_data['repoUrl'],
+                env=project_data['env']
+            )
+            projects.append(project)
     
     return Config(projects=projects)

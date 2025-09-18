@@ -102,6 +102,37 @@ class GitManager:
         except:
             return False
     
+    def resolve_commit_reference(self, repo: Repo, reference: str) -> Optional[str]:
+        """
+        Resolve a git reference (commit, tag, branch) to a commit ID.
+        
+        Args:
+            repo: Git repository object
+            reference: Git reference (commit hash, tag, or branch name)
+            
+        Returns:
+            Resolved commit ID or None if reference cannot be resolved
+        """
+        try:
+            # Try to resolve the reference to a commit
+            commit = repo.commit(reference)
+            return commit.hexsha
+        except Exception as e:
+            self.logger.debug(f"Could not resolve reference '{reference}': {e}")
+            return None
+    
+    def tag_exists(self, repo: Repo, tag_name: str) -> bool:
+        """Check if a tag exists in the repository."""
+        try:
+            # Check if tag exists in repository
+            for tag in repo.tags:
+                if tag.name == tag_name:
+                    return True
+            return False
+        except Exception as e:
+            self.logger.debug(f"Error checking tag '{tag_name}': {e}")
+            return False
+    
     def cleanup_repos(self):
         """Remove all cloned repositories."""
         if self.repos_dir.exists():

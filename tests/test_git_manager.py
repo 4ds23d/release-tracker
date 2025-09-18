@@ -196,3 +196,64 @@ class TestGitManager:
         result = self.git_manager.get_commits_between(mock_repo, "from_commit", "to_commit")
         
         assert result == []
+    
+    def test_resolve_commit_reference_with_commit_id(self):
+        mock_repo = Mock()
+        mock_commit = Mock()
+        mock_commit.hexsha = "abc123def456"
+        mock_repo.commit.return_value = mock_commit
+        
+        result = self.git_manager.resolve_commit_reference(mock_repo, "abc123")
+        
+        assert result == "abc123def456"
+        mock_repo.commit.assert_called_once_with("abc123")
+    
+    def test_resolve_commit_reference_with_tag(self):
+        mock_repo = Mock()
+        mock_commit = Mock()
+        mock_commit.hexsha = "tag123abc456"
+        mock_repo.commit.return_value = mock_commit
+        
+        result = self.git_manager.resolve_commit_reference(mock_repo, "v1.2.0")
+        
+        assert result == "tag123abc456"
+        mock_repo.commit.assert_called_once_with("v1.2.0")
+    
+    def test_resolve_commit_reference_invalid_reference(self):
+        mock_repo = Mock()
+        mock_repo.commit.side_effect = Exception("Invalid reference")
+        
+        result = self.git_manager.resolve_commit_reference(mock_repo, "invalid-ref")
+        
+        assert result is None
+        mock_repo.commit.assert_called_once_with("invalid-ref")
+    
+    def test_tag_exists_true(self):
+        mock_repo = Mock()
+        mock_tag1 = Mock()
+        mock_tag1.name = "v1.0.0"
+        mock_tag2 = Mock()
+        mock_tag2.name = "v2.0.0"
+        mock_repo.tags = [mock_tag1, mock_tag2]
+        
+        result = self.git_manager.tag_exists(mock_repo, "v1.0.0")
+        
+        assert result is True
+    
+    def test_tag_exists_false(self):
+        mock_repo = Mock()
+        mock_tag1 = Mock()
+        mock_tag1.name = "v1.0.0"
+        mock_repo.tags = [mock_tag1]
+        
+        result = self.git_manager.tag_exists(mock_repo, "v2.0.0")
+        
+        assert result is False
+    
+    def test_tag_exists_exception(self):
+        mock_repo = Mock()
+        mock_repo.tags = Mock(side_effect=Exception("Git error"))
+        
+        result = self.git_manager.tag_exists(mock_repo, "v1.0.0")
+        
+        assert result is False

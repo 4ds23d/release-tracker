@@ -9,6 +9,7 @@ class VersionInfo:
     version: str
     commit_id: str
     environment: str
+    commit_source: str = "git"  # "git" or "version_fallback"
 
 
 class ActuatorClient:
@@ -18,7 +19,8 @@ class ActuatorClient:
         self.timeout = timeout
         self.logger = logging.getLogger(__name__)
     
-    def get_version_info(self, base_url: str, environment: str, verify_ssl: bool = True) -> Optional[VersionInfo]:
+    def get_version_info(self, base_url: str, environment: str, verify_ssl: bool = True, 
+                        use_version_fallback: bool = True) -> Optional[VersionInfo]:
         """
         Fetch version and commit information from /actuator/info endpoint.
         
@@ -26,6 +28,7 @@ class ActuatorClient:
             base_url: Base URL of the service
             environment: Environment name (PROD, PRE, TEST, DEV)
             verify_ssl: Whether to verify SSL certificates (default: True)
+            use_version_fallback: Use version as commit ID if git commit not found (default: True)
             
         Returns:
             VersionInfo object or None if request fails
@@ -47,15 +50,31 @@ class ActuatorClient:
             version = self._extract_version(data)
             commit_id = self._extract_commit_id(data)
             
+            # Implement fallback strategy
+            commit_source = "git"
             if version and commit_id:
-                return VersionInfo(
-                    version=version,
-                    commit_id=commit_id,
-                    environment=environment
-                )
+                # Both version and commit available - use commit
+                final_commit_id = commit_id
+            elif version and use_version_fallback:
+                # Only version available - use version as commit reference
+                final_commit_id = version
+                commit_source = "version_fallback"
+                self.logger.info(f"Using version '{version}' as commit reference for {environment} (no git commit found)")
+            elif version:
+                # Version available but fallback disabled
+                self.logger.warning(f"No git commit found for {environment} and version fallback is disabled")
+                return None
             else:
+                # No version or commit available
                 self.logger.warning(f"Could not extract version/commit info from {url}")
                 return None
+            
+            return VersionInfo(
+                version=version,
+                commit_id=final_commit_id,
+                environment=environment,
+                commit_source=commit_source
+            )
                 
         except requests.RequestException as e:
             self.logger.error(f"Failed to fetch info from {url}: {e}")

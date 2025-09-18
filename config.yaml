@@ -7,6 +7,15 @@ projects:
       TEST: "https://test-api.example.com"
       DEV: "https://dev-api.example.com"
     # verify_ssl: true  # Optional: Enable/disable SSL certificate verification (default: true)
+    # use_version_fallback: true  # Optional: Use version as commit reference if git commit not found (default: true)
+  
+  # Example with version fallback disabled (strict git commit requirement)
+  # - name: "strict-git-service"
+  #   repoUrl: "https://github.com/company/strict-service.git"
+  #   env:
+  #     PROD: "https://strict-prod.company.com"
+  #     DEV: "https://strict-dev.company.com"
+  #   use_version_fallback: false  # Require actual git commit ID, don't use version as fallback
   
   # Example with SSL verification disabled (useful for internal environments with self-signed certificates)
   # - name: "internal-service"
@@ -17,6 +26,7 @@ projects:
   #     TEST: "https://internal-test.company.local"
   #     DEV: "https://internal-dev.company.local"
   #   verify_ssl: false  # Disable SSL verification for self-signed certificates
+  #   use_version_fallback: true   # Use version as git tag if commit ID not available
   
   # Add more projects as needed
   # - name: "another-project"

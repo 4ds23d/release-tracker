@@ -41,7 +41,7 @@ class TestReleaseAnalyzer:
             "DEV": VersionInfo("1.3.0", "dev000", "DEV")
         }
         
-        def get_version_info_side_effect(url, env, verify_ssl=True):
+        def get_version_info_side_effect(url, env, verify_ssl=True, use_version_fallback=True):
             return version_infos.get(env)
         
         mock_api_client.get_version_info.side_effect = get_version_info_side_effect
@@ -49,7 +49,12 @@ class TestReleaseAnalyzer:
         # Setup git manager
         mock_repo = Mock()
         mock_git_manager.get_or_update_repo.return_value = mock_repo
-        mock_git_manager.commit_exists.return_value = True
+        
+        def resolve_commit_side_effect(repo, reference):
+            # Return the original reference to maintain test expectations
+            return reference
+        
+        mock_git_manager.resolve_commit_reference.side_effect = resolve_commit_side_effect
         
         # Setup commit responses
         def get_commits_side_effect(repo, from_commit, to_commit):
@@ -152,7 +157,7 @@ class TestReleaseAnalyzer:
         mock_api_client.get_version_info.return_value = VersionInfo("1.0.0", "abc123", "PROD")
         mock_repo = Mock()
         mock_git_manager.get_or_update_repo.return_value = mock_repo
-        mock_git_manager.commit_exists.return_value = False
+        mock_git_manager.resolve_commit_reference.return_value = None  # Simulate unresolvable commit
         
         self.analyzer.api_client = mock_api_client
         self.analyzer.git_manager = mock_git_manager

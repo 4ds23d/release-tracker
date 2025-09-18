@@ -48,7 +48,9 @@ class ReleaseAnalyzer:
         version_infos = {}
         for env_name, env_url in project_config.env.items():
             self.logger.info(f"Fetching version info for {project_config.name} - {env_name}")
-            version_info = self.api_client.get_version_info(env_url, env_name, project_config.verify_ssl)
+            version_info = self.api_client.get_version_info(
+                env_url, env_name, project_config.verify_ssl, project_config.use_version_fallback
+            )
             if version_info:
                 version_infos[env_name] = version_info
             else:
@@ -72,10 +74,21 @@ class ReleaseAnalyzer:
             if env in version_infos:
                 version_info = version_infos[env]
                 
-                # Validate commit exists in repository
-                if not self.git_manager.commit_exists(repo, version_info.commit_id):
-                    self.logger.warning(f"Commit {version_info.commit_id} not found in repository for {env}")
+                # Resolve commit reference (handle both commit IDs and tags/versions)
+                resolved_commit_id = self.git_manager.resolve_commit_reference(repo, version_info.commit_id)
+                if not resolved_commit_id:
+                    if version_info.commit_source == "version_fallback":
+                        self.logger.warning(f"Version '{version_info.commit_id}' could not be resolved to a commit/tag in repository for {env}")
+                    else:
+                        self.logger.warning(f"Commit '{version_info.commit_id}' not found in repository for {env}")
                     continue
+                
+                # Log successful resolution if using fallback
+                if version_info.commit_source == "version_fallback":
+                    self.logger.info(f"Resolved version '{version_info.commit_id}' to commit {resolved_commit_id[:8]} for {env}")
+                
+                # Update version_info with resolved commit ID
+                version_info.commit_id = resolved_commit_id
                 
                 # Calculate commits specific to this environment
                 commits = self._get_environment_specific_commits(

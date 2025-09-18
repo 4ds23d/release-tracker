@@ -86,6 +86,7 @@ projects:
       TEST: "https://gateway-test.company.com"
       DEV: "https://gateway-dev.company.com"
     # verify_ssl: true  # Optional: Enable/disable SSL verification (default: true)
+    # use_version_fallback: true  # Optional: Use version as commit fallback (default: true)
       
   - name: "user-service"
     repoUrl: "https://github.com/company/user-service.git"
@@ -95,6 +96,7 @@ projects:
       TEST: "https://users-test.company.com"
       DEV: "https://users-dev.company.com"
     verify_ssl: false  # Disable SSL verification for self-signed certificates
+    use_version_fallback: true  # Use version as git tag if no commit ID available
 ```
 
 ### SSL Configuration
@@ -109,6 +111,35 @@ projects:
       DEV: "https://internal-dev.company.local"
     verify_ssl: false  # Disable SSL certificate verification
 ```
+
+### Version Fallback Strategy
+For applications that only expose version information (without git commit details):
+
+```yaml
+projects:
+  - name: "version-only-service"
+    repoUrl: "https://github.com/company/version-service.git"
+    env:
+      PROD: "https://version-prod.company.com"
+      DEV: "https://version-dev.company.com"
+    use_version_fallback: true  # Use version as git tag/commit reference
+```
+
+#### How Version Fallback Works:
+1. **Primary Strategy**: Use git commit ID from `/actuator/info` if available
+2. **Fallback Strategy**: If no git commit found, use version as git reference (tag/commit)
+3. **Resolution**: Tool attempts to resolve version string to actual commit in repository
+
+#### Example Actuator Response (Version Only):
+```json
+{
+  "build": {
+    "version": "v2.1.0"
+  }
+  // No git commit information
+}
+```
+The tool will use `"v2.1.0"` to lookup the corresponding git tag/commit.
 
 ⚠️ **Security Warning**: Only disable SSL verification (`verify_ssl: false`) for trusted internal environments. This should not be used for external or untrusted endpoints.
 

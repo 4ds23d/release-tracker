@@ -187,3 +187,79 @@ class TestConfig:
         )
         
         assert project2.verify_ssl is True
+    
+    def test_load_config_with_version_fallback_disabled(self):
+        config_data = {
+            'projects': [
+                {
+                    'name': 'fallback-disabled-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {
+                        'PROD': 'https://prod.example.com'
+                    },
+                    'use_version_fallback': False
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(config_data, f)
+            config_path = f.name
+        
+        try:
+            config = load_config(config_path)
+            
+            assert len(config.projects) == 1
+            project = config.projects[0]
+            assert project.name == 'fallback-disabled-project'
+            assert project.use_version_fallback is False
+        finally:
+            Path(config_path).unlink()
+    
+    def test_load_config_version_fallback_default_true(self):
+        config_data = {
+            'projects': [
+                {
+                    'name': 'fallback-default-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {
+                        'PROD': 'https://prod.example.com'
+                    }
+                    # No use_version_fallback specified, should default to True
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(config_data, f)
+            config_path = f.name
+        
+        try:
+            config = load_config(config_path)
+            
+            assert len(config.projects) == 1
+            project = config.projects[0]
+            assert project.name == 'fallback-default-project'
+            assert project.use_version_fallback is True  # Should default to True
+        finally:
+            Path(config_path).unlink()
+    
+    def test_project_config_creation_with_version_fallback_options(self):
+        # Test with version fallback disabled
+        project1 = ProjectConfig(
+            name='fallback-disabled',
+            repoUrl='https://github.com/test/repo.git',
+            env={'PROD': 'https://prod.example.com'},
+            use_version_fallback=False
+        )
+        
+        assert project1.use_version_fallback is False
+        
+        # Test with version fallback enabled (default)
+        project2 = ProjectConfig(
+            name='fallback-enabled',
+            repoUrl='https://github.com/test/repo.git',
+            env={'PROD': 'https://prod.example.com'}
+        )
+        
+        assert project2.use_version_fallback is True

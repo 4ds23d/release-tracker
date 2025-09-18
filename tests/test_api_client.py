@@ -130,7 +130,7 @@ class TestActuatorClient:
         assert result is None
     
     @responses.activate
-    def test_get_version_info_missing_commit(self):
+    def test_get_version_info_missing_commit_fallback_enabled(self):
         base_url = "https://api.example.com"
         responses.add(
             responses.GET,
@@ -141,7 +141,26 @@ class TestActuatorClient:
             status=200
         )
         
-        result = self.client.get_version_info(base_url, "PROD")
+        result = self.client.get_version_info(base_url, "PROD", use_version_fallback=True)
+        
+        assert result is not None
+        assert result.version == "1.0.0"
+        assert result.commit_id == "1.0.0"  # Version used as fallback
+        assert result.commit_source == "version_fallback"
+    
+    @responses.activate
+    def test_get_version_info_missing_commit_fallback_disabled(self):
+        base_url = "https://api.example.com"
+        responses.add(
+            responses.GET,
+            f"{base_url}/actuator/info",
+            json={
+                "build": {"version": "1.0.0"}
+            },
+            status=200
+        )
+        
+        result = self.client.get_version_info(base_url, "PROD", use_version_fallback=False)
         
         assert result is None
     
@@ -201,6 +220,61 @@ class TestActuatorClient:
         
         assert result is not None
         assert result.version == "1.0.0"
+    
+    @responses.activate
+    def test_get_version_info_version_fallback_enabled(self):
+        base_url = "https://api.example.com"
+        responses.add(
+            responses.GET,
+            f"{base_url}/actuator/info",
+            json={
+                "build": {"version": "2.1.0"}
+                # No git commit information
+            },
+            status=200
+        )
+        
+        result = self.client.get_version_info(base_url, "PROD", verify_ssl=True, use_version_fallback=True)
+        
+        assert result is not None
+        assert result.version == "2.1.0"
+        assert result.commit_id == "2.1.0"  # Version used as commit ID
+        assert result.commit_source == "version_fallback"
+        assert result.environment == "PROD"
+    
+    @responses.activate
+    def test_get_version_info_version_fallback_disabled(self):
+        base_url = "https://api.example.com"
+        responses.add(
+            responses.GET,
+            f"{base_url}/actuator/info",
+            json={
+                "build": {"version": "2.1.0"}
+                # No git commit information
+            },
+            status=200
+        )
+        
+        result = self.client.get_version_info(base_url, "PROD", verify_ssl=True, use_version_fallback=False)
+        
+        assert result is None  # Should return None when fallback disabled and no commit
+    
+    @responses.activate
+    def test_get_version_info_no_version_no_commit(self):
+        base_url = "https://api.example.com"
+        responses.add(
+            responses.GET,
+            f"{base_url}/actuator/info",
+            json={
+                "other": "data"
+                # No version or commit information
+            },
+            status=200
+        )
+        
+        result = self.client.get_version_info(base_url, "PROD", use_version_fallback=True)
+        
+        assert result is None  # Should return None when no version or commit available
     
     def test_extract_version_various_paths(self):
         client = ActuatorClient()
@@ -284,3 +358,17 @@ class TestVersionInfo:
         assert version_info.version == "1.0.0"
         assert version_info.commit_id == "abc123"
         assert version_info.environment == "PROD"
+        assert version_info.commit_source == "git"  # Default value
+    
+    def test_version_info_creation_with_fallback_source(self):
+        version_info = VersionInfo(
+            version="1.0.0",
+            commit_id="v1.0.0",
+            environment="PROD",
+            commit_source="version_fallback"
+        )
+        
+        assert version_info.version == "1.0.0"
+        assert version_info.commit_id == "v1.0.0"
+        assert version_info.environment == "PROD"
+        assert version_info.commit_source == "version_fallback"

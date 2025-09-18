@@ -33,6 +33,7 @@ Edit `config.yaml` to configure projects and their environment URLs. Each projec
 - `repoUrl`: Git repository URL  
 - `env`: Dictionary with PROD, PRE, TEST, DEV environment URLs
 - `verify_ssl`: Optional boolean to enable/disable SSL certificate verification (default: true)
+- `use_version_fallback`: Optional boolean to use version as commit reference when git commit not found (default: true)
 
 ## Architecture
 
@@ -52,6 +53,15 @@ The application follows this hierarchy for commit comparison:
 - PRE shows commits not yet in PROD
 - TEST shows commits not yet in PRE  
 - DEV shows commits not yet in TEST
+
+### Version Fallback Strategy
+
+When `use_version_fallback` is enabled (default), the tool implements a two-tier commit resolution strategy:
+1. **Primary**: Use git commit ID from actuator response if available
+2. **Fallback**: If no git commit ID found, use version string as git reference (tag/commit)
+3. **Resolution**: Resolve version string to actual commit hash in repository
+
+This allows the tool to work with applications that only expose version information without git commit details.
 
 ### Dependencies
 

@@ -76,7 +76,12 @@ class TestIntegration:
         mock_git_manager = Mock()
         mock_repo = Mock()
         mock_git_manager.get_or_update_repo.return_value = mock_repo
-        mock_git_manager.commit_exists.return_value = True
+        
+        def resolve_commit_side_effect(repo, reference):
+            # Return the original reference to maintain test expectations
+            return reference
+        
+        mock_git_manager.resolve_commit_reference.side_effect = resolve_commit_side_effect
         
         def get_commits_side_effect(repo, from_commit, to_commit):
             if from_commit == "prod123" and to_commit == "pre456":

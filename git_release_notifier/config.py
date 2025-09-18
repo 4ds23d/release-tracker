@@ -9,6 +9,7 @@ class ProjectConfig:
     repoUrl: str
     env: Dict[str, str]
     verify_ssl: bool = True
+    use_version_fallback: bool = True
 
 
 @dataclass
@@ -28,7 +29,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
                 name=project_data['name'],
                 repoUrl=project_data['repoUrl'],
                 env=project_data['env'],
-                verify_ssl=project_data.get('verify_ssl', True)
+                verify_ssl=project_data.get('verify_ssl', True),
+                use_version_fallback=project_data.get('use_version_fallback', True)
             )
             projects.append(project)
     

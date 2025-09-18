@@ -32,6 +32,7 @@ Edit `config.yaml` to configure projects and their environment URLs. Each projec
 - `name`: Project identifier
 - `repoUrl`: Git repository URL  
 - `env`: Dictionary with PROD, PRE, TEST, DEV environment URLs
+- `verify_ssl`: Optional boolean to enable/disable SSL certificate verification (default: true)
 
 ## Architecture
 

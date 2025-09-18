@@ -85,6 +85,7 @@ projects:
       PRE: "https://gateway-pre.company.com"
       TEST: "https://gateway-test.company.com"
       DEV: "https://gateway-dev.company.com"
+    # verify_ssl: true  # Optional: Enable/disable SSL verification (default: true)
       
   - name: "user-service"
     repoUrl: "https://github.com/company/user-service.git"
@@ -93,7 +94,23 @@ projects:
       PRE: "https://users-pre.company.com"
       TEST: "https://users-test.company.com"
       DEV: "https://users-dev.company.com"
+    verify_ssl: false  # Disable SSL verification for self-signed certificates
 ```
+
+### SSL Configuration
+For internal environments with self-signed certificates or when SSL verification needs to be bypassed:
+
+```yaml
+projects:
+  - name: "internal-service"
+    repoUrl: "https://github.com/company/internal-service.git"
+    env:
+      PROD: "https://internal-prod.company.local"
+      DEV: "https://internal-dev.company.local"
+    verify_ssl: false  # Disable SSL certificate verification
+```
+
+⚠️ **Security Warning**: Only disable SSL verification (`verify_ssl: false`) for trusted internal environments. This should not be used for external or untrusted endpoints.
 
 ### Expected Actuator Response
 Your `/actuator/info` endpoints should return:

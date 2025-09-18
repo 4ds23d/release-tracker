@@ -8,6 +8,7 @@ class ProjectConfig:
     name: str
     repoUrl: str
     env: Dict[str, str]
+    verify_ssl: bool = True
 
 
 @dataclass
@@ -26,7 +27,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
             project = ProjectConfig(
                 name=project_data['name'],
                 repoUrl=project_data['repoUrl'],
-                env=project_data['env']
+                env=project_data['env'],
+                verify_ssl=project_data.get('verify_ssl', True)
             )
             projects.append(project)
     

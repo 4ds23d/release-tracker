@@ -111,3 +111,79 @@ class TestConfig:
         assert len(config.projects) == 2
         assert config.projects[0].name == 'proj1'
         assert config.projects[1].name == 'proj2'
+    
+    def test_load_config_with_ssl_verification_disabled(self):
+        config_data = {
+            'projects': [
+                {
+                    'name': 'insecure-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {
+                        'PROD': 'https://prod.example.com'
+                    },
+                    'verify_ssl': False
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(config_data, f)
+            config_path = f.name
+        
+        try:
+            config = load_config(config_path)
+            
+            assert len(config.projects) == 1
+            project = config.projects[0]
+            assert project.name == 'insecure-project'
+            assert project.verify_ssl is False
+        finally:
+            Path(config_path).unlink()
+    
+    def test_load_config_ssl_verification_default_true(self):
+        config_data = {
+            'projects': [
+                {
+                    'name': 'secure-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {
+                        'PROD': 'https://prod.example.com'
+                    }
+                    # No verify_ssl specified, should default to True
+                }
+            ]
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(config_data, f)
+            config_path = f.name
+        
+        try:
+            config = load_config(config_path)
+            
+            assert len(config.projects) == 1
+            project = config.projects[0]
+            assert project.name == 'secure-project'
+            assert project.verify_ssl is True  # Should default to True
+        finally:
+            Path(config_path).unlink()
+    
+    def test_project_config_creation_with_ssl_options(self):
+        # Test with SSL verification disabled
+        project1 = ProjectConfig(
+            name='insecure-project',
+            repoUrl='https://github.com/test/repo.git',
+            env={'PROD': 'https://prod.example.com'},
+            verify_ssl=False
+        )
+        
+        assert project1.verify_ssl is False
+        
+        # Test with SSL verification enabled (default)
+        project2 = ProjectConfig(
+            name='secure-project',
+            repoUrl='https://github.com/test/repo.git',
+            env={'PROD': 'https://prod.example.com'}
+        )
+        
+        assert project2.verify_ssl is True

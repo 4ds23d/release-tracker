@@ -48,7 +48,7 @@ class ReleaseAnalyzer:
         version_infos = {}
         for env_name, env_url in project_config.env.items():
             self.logger.info(f"Fetching version info for {project_config.name} - {env_name}")
-            version_info = self.api_client.get_version_info(env_url, env_name)
+            version_info = self.api_client.get_version_info(env_url, env_name, project_config.verify_ssl)
             if version_info:
                 version_infos[env_name] = version_info
             else:

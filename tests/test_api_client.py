@@ -163,6 +163,45 @@ class TestActuatorClient:
         assert result is not None
         assert result.version == "1.0.0"
     
+    @responses.activate
+    def test_get_version_info_ssl_verification_disabled(self):
+        base_url = "https://api.example.com"
+        responses.add(
+            responses.GET,
+            f"{base_url}/actuator/info",
+            json={
+                "build": {"version": "1.0.0"},
+                "git": {"commit": {"id": "abc123"}}
+            },
+            status=200
+        )
+        
+        result = self.client.get_version_info(base_url, "PROD", verify_ssl=False)
+        
+        assert result is not None
+        assert result.version == "1.0.0"
+        assert result.commit_id == "abc123"
+        assert result.environment == "PROD"
+    
+    @responses.activate
+    def test_get_version_info_ssl_verification_enabled_default(self):
+        base_url = "https://api.example.com"
+        responses.add(
+            responses.GET,
+            f"{base_url}/actuator/info",
+            json={
+                "build": {"version": "1.0.0"},
+                "git": {"commit": {"id": "abc123"}}
+            },
+            status=200
+        )
+        
+        # Test that SSL verification is enabled by default
+        result = self.client.get_version_info(base_url, "PROD")
+        
+        assert result is not None
+        assert result.version == "1.0.0"
+    
     def test_extract_version_various_paths(self):
         client = ActuatorClient()
         

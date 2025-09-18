@@ -6,6 +6,17 @@ projects:
       PRE: "https://pre-api.example.com"
       TEST: "https://test-api.example.com"
       DEV: "https://dev-api.example.com"
+    # verify_ssl: true  # Optional: Enable/disable SSL certificate verification (default: true)
+  
+  # Example with SSL verification disabled (useful for internal environments with self-signed certificates)
+  # - name: "internal-service"
+  #   repoUrl: "https://github.com/company/internal-service.git"
+  #   env:
+  #     PROD: "https://internal-prod.company.local"
+  #     PRE: "https://internal-pre.company.local"
+  #     TEST: "https://internal-test.company.local"
+  #     DEV: "https://internal-dev.company.local"
+  #   verify_ssl: false  # Disable SSL verification for self-signed certificates
   
   # Add more projects as needed
   # - name: "another-project"

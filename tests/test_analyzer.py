@@ -41,7 +41,7 @@ class TestReleaseAnalyzer:
             "DEV": VersionInfo("1.3.0", "dev000", "DEV")
         }
         
-        def get_version_info_side_effect(url, env):
+        def get_version_info_side_effect(url, env, verify_ssl=True):
             return version_infos.get(env)
         
         mock_api_client.get_version_info.side_effect = get_version_info_side_effect

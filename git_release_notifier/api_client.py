@@ -18,13 +18,14 @@ class ActuatorClient:
         self.timeout = timeout
         self.logger = logging.getLogger(__name__)
     
-    def get_version_info(self, base_url: str, environment: str) -> Optional[VersionInfo]:
+    def get_version_info(self, base_url: str, environment: str, verify_ssl: bool = True) -> Optional[VersionInfo]:
         """
         Fetch version and commit information from /actuator/info endpoint.
         
         Args:
             base_url: Base URL of the service
             environment: Environment name (PROD, PRE, TEST, DEV)
+            verify_ssl: Whether to verify SSL certificates (default: True)
             
         Returns:
             VersionInfo object or None if request fails
@@ -32,7 +33,12 @@ class ActuatorClient:
         url = f"{base_url.rstrip('/')}/actuator/info"
         
         try:
-            response = requests.get(url, timeout=self.timeout)
+            # Suppress SSL warnings when verification is disabled
+            if not verify_ssl:
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            response = requests.get(url, timeout=self.timeout, verify=verify_ssl)
             response.raise_for_status()
             
             data = response.json()

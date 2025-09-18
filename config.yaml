@@ -1,0 +1,17 @@
+projects:
+  - name: "sample-project"
+    repoUrl: "https://github.com/user/sample-project.git"
+    env:
+      PROD: "https://prod-api.example.com"
+      PRE: "https://pre-api.example.com"
+      TEST: "https://test-api.example.com"
+      DEV: "https://dev-api.example.com"
+  
+  # Add more projects as needed
+  # - name: "another-project"
+  #   repoUrl: "https://github.com/user/another-project.git"
+  #   env:
+  #     PROD: "https://prod-api2.example.com"
+  #     PRE: "https://pre-api2.example.com"
+  #     TEST: "https://test-api2.example.com"
+  #     DEV: "https://dev-api2.example.com"

@@ -1,0 +1,26 @@
+Create python command line application for retrieving actual state of deployed application/project among different environments. The project should get from provided URL actual version of environments, and then find all commit messages that are associated with commit id. The environemtns are fixed: PROD, PRE, TEST, DEV. There can be multiple repositories so there should be a way to define it as a configuration option. The script should update the repository or clone it. 
+The project should have following configuration:
+- repoUrl
+- env:
+  - PROD
+  - PRE
+  - TEST
+  - DEV
+
+
+Application should create following workflow:
+* read from configuration all projects
+* from each project the application should do:
+** repeat following steps for each environment:
+*** invoke rest api: GET: {url_from_configuration}/actuator/info
+*** extract version, and git commit from GET response
+** update or clone repository for a project
+** for each extracted version there should be invoked a search in git repositories
+** PROD environment is a base line
+** PRE should have all commits with messages that are not in PROD environment
+** TEST should have all commits with messages that are not in PRE environment
+** DEV should have all commits with messages that are not in TEST environment
+* for this create a html report that can present this in a pleasent way
+
+
+If you have any further questions please ask.

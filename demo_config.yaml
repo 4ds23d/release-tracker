@@ -1,0 +1,18 @@
+projects:
+  - name: "user-service"
+    repoUrl: "https://github.com/company/user-service.git"
+    env:
+      PROD: "https://users-prod.company.com"
+      PRE: "https://users-pre.company.com"
+      TEST: "https://users-test.company.com"
+      DEV: "https://users-dev.company.com"
+    jira_base_url: "https://company.atlassian.net"
+    
+  - name: "api-gateway"
+    repoUrl: "https://github.com/company/api-gateway.git"
+    env:
+      PROD: "https://gateway-prod.company.com"
+      PRE: "https://gateway-pre.company.com"
+      TEST: "https://gateway-test.company.com"
+      DEV: "https://gateway-dev.company.com"
+    jira_base_url: "https://company.atlassian.net"

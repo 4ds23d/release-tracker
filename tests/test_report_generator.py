@@ -51,7 +51,7 @@ class TestHTMLReportGenerator:
             # Verify content
             content = output_path.read_text(encoding='utf-8')
             assert '<!DOCTYPE html>' in content
-            assert 'Release Report' in content
+            assert 'Release Tracker' in content
             assert 'test-project' in content
             assert '1.0.0' in content
             assert '1.1.0' in content
@@ -105,7 +105,7 @@ class TestHTMLReportGenerator:
             
             content = Path(output_file).read_text(encoding='utf-8')
             assert '<!DOCTYPE html>' in content
-            assert 'Release Report' in content
+            assert 'Release Tracker' in content
             
         finally:
             Path(output_file).unlink()
@@ -186,7 +186,7 @@ class TestHTMLReportGenerator:
         )
         
         assert '<!DOCTYPE html>' in rendered
-        assert 'Release Report' in rendered
+        assert 'Release Tracker' in rendered
         assert '2023-01-01T12:00:00' in rendered
     
     def test_template_javascript_functionality(self):
@@ -197,8 +197,9 @@ class TestHTMLReportGenerator:
             environment_order=['DEV', 'TEST', 'PRE', 'PROD']
         )
         
-        # Check that JavaScript function exists
+        # Check that JavaScript functions exist
         assert 'function toggleCommits' in rendered
+        assert 'function toggleJiraTickets' in rendered
         assert 'expanded' in rendered
         assert 'rotated' in rendered
     
@@ -216,8 +217,9 @@ class TestHTMLReportGenerator:
         assert '.env-pre' in rendered
         assert '.env-prod' in rendered
         assert '.commit-item' in rendered
-        assert '.version-badge' in rendered
+        assert '.version-commit-badge' in rendered
         assert '.commits-count' in rendered
+        assert '.jira-count' in rendered
     
     @patch('git_release_notifier.report_generator.Path')
     def test_generate_report_file_write_error(self, mock_path):

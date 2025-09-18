@@ -54,7 +54,7 @@ class HTMLReportGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Release Report</title>
+    <title>Release Tracker</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -116,31 +116,29 @@ class HTMLReportGenerator:
         .env-header:hover {
             background-color: #f8f9fa;
         }
-        .env-dev { background-color: #e3f2fd; }
-        .env-test { background-color: #fff3e0; }
-        .env-pre { background-color: #f3e5f5; }
-        .env-prod { background-color: #e8f5e8; }
+        .env-dev { background-color: #f8fafe; }
+        .env-test { background-color: #fefcf8; }
+        .env-pre { background-color: #fcf9fc; }
+        .env-prod { background-color: #f9fdf9; }
         
         .env-info {
             display: flex;
             gap: 20px;
             align-items: center;
         }
-        .version-badge {
-            background: rgba(255,255,255,0.8);
-            padding: 5px 12px;
-            border-radius: 15px;
+        .toggle-icons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .version-commit-badge {
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 12px;
             font-family: monospace;
             font-size: 0.9em;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .commit-badge {
-            background: rgba(255,255,255,0.6);
-            padding: 4px 8px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 0.8em;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.15);
+            color: #555;
         }
         .commits-count {
             background: #ff5722;
@@ -149,24 +147,44 @@ class HTMLReportGenerator:
             border-radius: 12px;
             font-size: 0.9em;
             font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .commits-count:hover {
+            background: #e64a19;
+        }
+        .jira-count {
+            background: #0052cc;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .jira-count:hover {
+            background: #003d99;
         }
         .jira-tickets {
-            background: rgba(255,255,255,0.9);
-            padding: 10px 15px;
-            border-top: 1px solid rgba(0,0,0,0.1);
-            font-size: 0.9em;
+            padding: 0 20px 20px 20px;
+            display: none;
+        }
+        .jira-tickets.expanded {
+            display: block;
         }
         .jira-tickets h4 {
-            margin: 0 0 8px 0;
+            margin: 0 0 12px 0;
             color: #555;
             font-size: 0.9em;
+            padding-top: 10px;
         }
         .jira-ticket {
             display: inline-block;
             background: #0052cc;
             color: white;
-            padding: 4px 8px;
-            margin: 2px 4px 2px 0;
+            padding: 6px 10px;
+            margin: 4px 6px 4px 0;
             border-radius: 4px;
             text-decoration: none;
             font-family: monospace;
@@ -225,7 +243,7 @@ class HTMLReportGenerator:
 </head>
 <body>
     <div class="header">
-        <h1>🚀 Release Report</h1>
+        <h1>Release Tracker</h1>
         <div class="timestamp">Generated: {{ generated_at }}</div>
     </div>
 
@@ -240,22 +258,29 @@ class HTMLReportGenerator:
                 {% if env in project.environments %}
                     {% set env_data = project.environments[env] %}
                     <div class="environment">
-                        <div class="env-header env-{{ env.lower() }}" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">
+                        <div class="env-header env-{{ env.lower() }}">
                             <div class="env-info">
                                 <span>{{ env }}</span>
-                                <span class="version-badge">{{ env_data.version }}</span>
-                                <span class="commit-badge">{{ env_data.commit_id[:8] }}</span>
+                                <span class="version-commit-badge">{{ env_data.version }}({{ env_data.commit_id[:8] }})</span>
                                 {% if env_data.commits %}
-                                    <span class="commits-count">{{ env_data.commits|length }} new commits</span>
+                                    <span class="commits-count" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">{{ env_data.commits|length }} commits</span>
+                                {% endif %}
+                                {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
+                                    <span class="jira-count" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">{{ env_data.jira_tickets|length }} tickets</span>
                                 {% endif %}
                             </div>
-                            {% if env_data.commits %}
-                                <span class="toggle-icon" id="icon-{{ project.project_name }}-{{ env }}">▼</span>
-                            {% endif %}
+                            <div class="toggle-icons">
+                                {% if env_data.commits %}
+                                    <span class="toggle-icon" id="commits-icon-{{ project.project_name }}-{{ env }}" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">▼</span>
+                                {% endif %}
+                                {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
+                                    <span class="toggle-icon" id="jira-icon-{{ project.project_name }}-{{ env }}" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">🎫</span>
+                                {% endif %}
+                            </div>
                         </div>
                         
                         {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
-                            <div class="jira-tickets">
+                            <div class="jira-tickets" id="jira-{{ project.project_name }}-{{ env }}">
                                 <h4>🎫 JIRA Tickets:</h4>
                                 {% for ticket in env_data.jira_tickets %}
                                     <a href="{{ project_configs[project.project_name].jira_base_url }}/browse/{{ ticket }}" 
@@ -290,12 +315,25 @@ class HTMLReportGenerator:
     <script>
         function toggleCommits(id) {
             const commitsList = document.getElementById('commits-' + id);
-            const icon = document.getElementById('icon-' + id);
+            const icon = document.getElementById('commits-icon-' + id);
             
             if (commitsList) {
                 commitsList.classList.toggle('expanded');
                 if (icon) {
                     icon.classList.toggle('rotated');
+                }
+            }
+        }
+        
+        function toggleJiraTickets(id) {
+            const jiraList = document.getElementById('jira-' + id);
+            const icon = document.getElementById('jira-icon-' + id);
+            
+            if (jiraList) {
+                jiraList.classList.toggle('expanded');
+                if (icon) {
+                    // Toggle between ticket emoji and expanded state
+                    icon.textContent = jiraList.classList.contains('expanded') ? '🎫▲' : '🎫';
                 }
             }
         }

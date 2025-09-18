@@ -49,7 +49,7 @@ python main.py --config config.yaml --output report.html
 ### 4. View Results
 Open `report.html` in your browser to explore the deployment analysis.
 
-## Usage
+## 🛠️ Usage
 
 ```bash
 python main.py [OPTIONS]
@@ -62,31 +62,75 @@ Options:
   --help               Show this message and exit
 ```
 
-## How it Works
+## 🔧 How It Works
 
-1. **Fetch Version Info**: Calls `/actuator/info` endpoint for each environment to get version and commit information
-2. **Git Analysis**: Clones/updates repositories and compares commits between environments
-3. **Report Generation**: Creates an HTML report showing:
-   - PROD: Baseline environment (no commits shown)
-   - PRE: Commits not yet deployed to PROD
-   - TEST: Commits not yet deployed to PRE
-   - DEV: Commits not yet deployed to TEST
+1. **🌐 Fetch Version Info** - Calls `/actuator/info` endpoints to get current deployments
+2. **📋 Git Analysis** - Clones/updates repos and analyzes commit differences  
+3. **📊 Smart Comparison** - Uses environment hierarchy for meaningful diffs:
+   - **PROD** → Baseline (production-ready commits)
+   - **PRE** → Shows commits ready for production  
+   - **TEST** → Shows commits ready for pre-production
+   - **DEV** → Shows all development commits
+4. **🎨 Report Generation** - Creates interactive HTML with commit details
 
-## Configuration
+## ⚙️ Configuration
 
-The `config.yaml` file defines your projects and their environment URLs. Each project requires:
+### Basic Setup
+```yaml
+projects:
+  - name: "api-gateway"
+    repoUrl: "git@github.com:company/api-gateway.git"
+    env:
+      PROD: "https://gateway-prod.company.com"
+      PRE: "https://gateway-pre.company.com"
+      TEST: "https://gateway-test.company.com"
+      DEV: "https://gateway-dev.company.com"
+      
+  - name: "user-service"
+    repoUrl: "https://github.com/company/user-service.git"
+    env:
+      PROD: "https://users-prod.company.com"
+      PRE: "https://users-pre.company.com"
+      TEST: "https://users-test.company.com"
+      DEV: "https://users-dev.company.com"
+```
 
-- `name`: Unique project identifier
-- `repoUrl`: Git repository URL (HTTPS or SSH)
-- `env`: Dictionary mapping environment names to their actuator URLs
+### Expected Actuator Response
+Your `/actuator/info` endpoints should return:
+```json
+{
+  "build": {
+    "version": "2.1.0"
+  },
+  "git": {
+    "commit": {
+      "id": "a7f3b2c1d8e4f5g6h7i8j9k0"
+    }
+  }
+}
+```
 
-## Requirements
+## 📋 Requirements
 
-- Python 3.7+
-- Git installed and accessible
-- Network access to configured APIs and repositories
-- Spring Boot applications with `/actuator/info` endpoint enabled
+- **Python 3.7+**
+- **Git** installed and accessible
+- **Network access** to APIs and repositories
+- **Spring Boot** applications with actuator endpoints
 
-## License
+## 🤝 Contributing
 
-MIT License
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built for teams managing microservices across multiple environments
+- Inspired by the need for deployment visibility and change tracking
+- Designed to work seamlessly with Spring Boot and Git workflows

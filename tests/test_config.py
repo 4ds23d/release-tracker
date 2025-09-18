@@ -8,6 +8,11 @@ from git_release_notifier.config import load_config, Config, ProjectConfig
 
 class TestConfig:
     
+    def create_test_config(self, config_data):
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(config_data, f)
+            return f.name
+    
     def test_load_config_valid(self):
         config_data = {
             'projects': [
@@ -263,3 +268,55 @@ class TestConfig:
         )
         
         assert project2.use_version_fallback is True
+    
+    def test_load_config_with_jira_base_url(self):
+        config_data = {
+            'projects': [
+                {
+                    'name': 'test-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {'PROD': 'https://prod.example.com'},
+                    'jira_base_url': 'https://company.atlassian.net'
+                }
+            ]
+        }
+        config_file = self.create_test_config(config_data)
+        
+        try:
+            config = load_config(config_file)
+            
+            assert len(config.projects) == 1
+            assert config.projects[0].jira_base_url == 'https://company.atlassian.net'
+        finally:
+            Path(config_file).unlink()
+    
+    def test_load_config_jira_base_url_default_none(self):
+        config_data = {
+            'projects': [
+                {
+                    'name': 'test-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {'PROD': 'https://prod.example.com'}
+                }
+            ]
+        }
+        config_file = self.create_test_config(config_data)
+        
+        try:
+            config = load_config(config_file)
+            
+            assert len(config.projects) == 1
+            assert config.projects[0].jira_base_url is None
+        finally:
+            Path(config_file).unlink()
+    
+    def test_project_config_creation_with_jira_options(self):
+        project = ProjectConfig(
+            name="test-project",
+            repoUrl="https://github.com/test/repo.git",
+            env={"PROD": "https://prod.example.com"},
+            jira_base_url="https://mycompany.atlassian.net"
+        )
+        
+        assert project.name == "test-project"
+        assert project.jira_base_url == "https://mycompany.atlassian.net"

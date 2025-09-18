@@ -13,21 +13,28 @@ class HTMLReportGenerator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
-    def generate_report(self, analyses: List[ProjectAnalysis], output_file: str = "release_report.html"):
+    def generate_report(self, analyses: List[ProjectAnalysis], output_file: str = "release_report.html", project_configs: List = None):
         """
         Generate HTML report from project analyses.
         
         Args:
             analyses: List of ProjectAnalysis objects
             output_file: Output file path
+            project_configs: List of ProjectConfig objects for JIRA base URLs
         """
         template = self._get_template()
+        
+        # Create a mapping of project names to their configs for JIRA URLs
+        project_config_map = {}
+        if project_configs:
+            project_config_map = {config.name: config for config in project_configs}
         
         # Prepare data for template
         report_data = {
             'generated_at': datetime.now().isoformat(),
             'projects': analyses,
-            'environment_order': ['DEV', 'TEST', 'PRE', 'PROD']
+            'environment_order': ['DEV', 'TEST', 'PRE', 'PROD'],
+            'project_configs': project_config_map
         }
         
         # Render template
@@ -143,6 +150,34 @@ class HTMLReportGenerator:
             font-size: 0.9em;
             font-weight: bold;
         }
+        .jira-tickets {
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            font-size: 0.9em;
+        }
+        .jira-tickets h4 {
+            margin: 0 0 8px 0;
+            color: #555;
+            font-size: 0.9em;
+        }
+        .jira-ticket {
+            display: inline-block;
+            background: #0052cc;
+            color: white;
+            padding: 4px 8px;
+            margin: 2px 4px 2px 0;
+            border-radius: 4px;
+            text-decoration: none;
+            font-family: monospace;
+            font-size: 0.85em;
+            transition: background-color 0.2s;
+        }
+        .jira-ticket:hover {
+            background: #003d99;
+            text-decoration: none;
+            color: white;
+        }
         .commits-list {
             padding: 0 20px 20px 20px;
             display: none;
@@ -218,6 +253,16 @@ class HTMLReportGenerator:
                                 <span class="toggle-icon" id="icon-{{ project.project_name }}-{{ env }}">▼</span>
                             {% endif %}
                         </div>
+                        
+                        {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
+                            <div class="jira-tickets">
+                                <h4>🎫 JIRA Tickets:</h4>
+                                {% for ticket in env_data.jira_tickets %}
+                                    <a href="{{ project_configs[project.project_name].jira_base_url }}/browse/{{ ticket }}" 
+                                       target="_blank" class="jira-ticket">{{ ticket }}</a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                         
                         {% if env_data.commits %}
                             <div class="commits-list" id="commits-{{ project.project_name }}-{{ env }}">

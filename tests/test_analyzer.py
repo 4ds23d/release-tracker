@@ -230,6 +230,63 @@ class TestReleaseAnalyzer:
         )
         
         assert result == []
+    
+    def test_extract_jira_tickets_success(self):
+        commits = [
+            {"message": "ABC-123: Fix critical bug in authentication"},
+            {"message": "Feature implementation XYZ-456 and ABC-789"},
+            {"message": "Regular commit without tickets"},
+            {"message": "PROJ-001: Add new functionality for TEST-999"},
+            {"message": "Multiple tickets: DEV-111, QA-222, RELEASE-333"}
+        ]
+        
+        result = self.analyzer._extract_jira_tickets(commits)
+        
+        expected_tickets = {"ABC-123", "XYZ-456", "ABC-789", "PROJ-001", "TEST-999", "DEV-111", "QA-222", "RELEASE-333"}
+        assert result == expected_tickets
+    
+    def test_extract_jira_tickets_no_tickets(self):
+        commits = [
+            {"message": "Regular commit message"},
+            {"message": "Another commit without any tickets"},
+            {"message": "Fix bug in component"},
+        ]
+        
+        result = self.analyzer._extract_jira_tickets(commits)
+        
+        assert result == set()
+    
+    def test_extract_jira_tickets_empty_commits(self):
+        commits = []
+        
+        result = self.analyzer._extract_jira_tickets(commits)
+        
+        assert result == set()
+    
+    def test_extract_jira_tickets_missing_message(self):
+        commits = [
+            {"id": "abc123"},  # No message field
+            {"message": "ABC-123: Valid ticket"},
+            {"message": None},  # None message
+        ]
+        
+        result = self.analyzer._extract_jira_tickets(commits)
+        
+        assert result == {"ABC-123"}
+    
+    def test_extract_jira_tickets_pattern_validation(self):
+        commits = [
+            {"message": "Valid: ABC-123, XY-456, SHORTPROJ-789"},  # Changed to valid 9-char project
+            {"message": "Invalid patterns: 123-ABC, a-123, TOOLONGPROJECTNAME-123"},
+            {"message": "Edge cases: A-1, ABCDEFGHIJ-999"},  # 1 and 10 chars are valid
+            {"message": "More invalid: ABCDEFGHIJK-123, -123, ABC-, LONGPROJECT-123"},  # 11+ chars invalid
+        ]
+        
+        result = self.analyzer._extract_jira_tickets(commits)
+        
+        # Only valid patterns should match (1-10 uppercase letters followed by dash and digits)
+        expected_tickets = {"ABC-123", "XY-456", "SHORTPROJ-789", "A-1", "ABCDEFGHIJ-999"}
+        assert result == expected_tickets
 
 
 class TestProjectAnalysis:
@@ -282,3 +339,20 @@ class TestEnvironmentCommits:
         assert env_commits.commit_id == "abc123"
         assert len(env_commits.commits) == 2
         assert env_commits.commits[0]["id"] == "abc123"
+        assert env_commits.jira_tickets == set()  # Default empty set
+    
+    def test_environment_commits_with_jira_tickets(self):
+        commits = [
+            {"id": "abc123", "message": "ABC-123: Test commit"}
+        ]
+        jira_tickets = {"ABC-123", "XYZ-456"}
+        
+        env_commits = EnvironmentCommits(
+            environment="TEST",
+            version="1.2.0",
+            commit_id="abc123",
+            commits=commits,
+            jira_tickets=jira_tickets
+        )
+        
+        assert env_commits.jira_tickets == jira_tickets

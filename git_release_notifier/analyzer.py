@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from git import Repo
 import logging
+import re
 
 from .api_client import VersionInfo, ActuatorClient
 from .git_manager import GitManager
@@ -13,6 +14,11 @@ class EnvironmentCommits:
     version: str
     commit_id: str
     commits: List[dict]
+    jira_tickets: Set[str] = None
+    
+    def __post_init__(self):
+        if self.jira_tickets is None:
+            self.jira_tickets = set()
 
 
 @dataclass
@@ -95,11 +101,15 @@ class ReleaseAnalyzer:
                     repo, env, version_info.commit_id, version_infos, env_order
                 )
                 
+                # Extract JIRA tickets from commit messages
+                jira_tickets = self._extract_jira_tickets(commits)
+                
                 environments[env] = EnvironmentCommits(
                     environment=env,
                     version=version_info.version,
                     commit_id=version_info.commit_id,
-                    commits=commits
+                    commits=commits,
+                    jira_tickets=jira_tickets
                 )
         
         if not environments:
@@ -150,3 +160,26 @@ class ReleaseAnalyzer:
         
         # Get commits that are in current environment but not in baseline
         return self.git_manager.get_commits_between(repo, baseline_commit, current_commit)
+    
+    def _extract_jira_tickets(self, commits: List[dict]) -> Set[str]:
+        """
+        Extract JIRA ticket IDs from commit messages.
+        
+        Pattern: word-digits (e.g., ABC-123, PROJ-456)
+        
+        Args:
+            commits: List of commit dictionaries with 'message' field
+            
+        Returns:
+            Set of unique JIRA ticket IDs
+        """
+        jira_pattern = re.compile(r'\b([A-Z]{1,10}-\d+)\b')
+        tickets = set()
+        
+        for commit in commits:
+            message = commit.get('message', '')
+            if message:
+                matches = jira_pattern.findall(message)
+                tickets.update(matches)
+        
+        return tickets

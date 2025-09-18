@@ -10,6 +10,7 @@ class ProjectConfig:
     env: Dict[str, str]
     verify_ssl: bool = True
     use_version_fallback: bool = True
+    jira_base_url: str = None
 
 
 @dataclass
@@ -30,7 +31,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
                 repoUrl=project_data['repoUrl'],
                 env=project_data['env'],
                 verify_ssl=project_data.get('verify_ssl', True),
-                use_version_fallback=project_data.get('use_version_fallback', True)
+                use_version_fallback=project_data.get('use_version_fallback', True),
+                jira_base_url=project_data.get('jira_base_url')
             )
             projects.append(project)
     

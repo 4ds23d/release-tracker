@@ -13,6 +13,7 @@ A powerful Python CLI tool that analyzes deployment states across environments a
 - 🔄 **Multi-Project Support** - Handle multiple repositories and services
 - ⚡ **Auto Git Management** - Clones and updates repositories automatically
 - 🎯 **Commit Diff Logic** - Shows exactly what's new in each environment
+- 🎫 **JIRA Integration** - Automatically extracts and links JIRA tickets from commit messages
 
 ## 🖼️ Screenshot
 
@@ -39,6 +40,7 @@ projects:
       PRE: "https://api-pre.company.com" 
       TEST: "https://api-test.company.com"
       DEV: "https://api-dev.company.com"
+    jira_base_url: "https://yourcompany.atlassian.net"  # Optional: JIRA base URL for linking tickets
 ```
 
 ### 3. Generate Report
@@ -87,6 +89,7 @@ projects:
       DEV: "https://gateway-dev.company.com"
     # verify_ssl: true  # Optional: Enable/disable SSL verification (default: true)
     # use_version_fallback: true  # Optional: Use version as commit fallback (default: true)
+    # jira_base_url: "https://yourcompany.atlassian.net"  # Optional: JIRA base URL for linking tickets
       
   - name: "user-service"
     repoUrl: "https://github.com/company/user-service.git"
@@ -142,6 +145,32 @@ projects:
 The tool will use `"v2.1.0"` to lookup the corresponding git tag/commit.
 
 ⚠️ **Security Warning**: Only disable SSL verification (`verify_ssl: false`) for trusted internal environments. This should not be used for external or untrusted endpoints.
+
+### JIRA Integration
+For projects with JIRA tickets referenced in commit messages, configure `jira_base_url` to automatically extract and link tickets:
+
+```yaml
+projects:
+  - name: "project-with-jira"
+    repoUrl: "https://github.com/company/project.git"
+    env:
+      PROD: "https://project-prod.company.com"
+      DEV: "https://project-dev.company.com"
+    jira_base_url: "https://yourcompany.atlassian.net"
+```
+
+#### How JIRA Integration Works:
+1. **Ticket Detection**: Scans commit messages for JIRA ticket patterns (e.g., `ABC-123`, `PROJ-456`)
+2. **Pattern**: Matches 1-10 uppercase letters followed by dash and digits: `[A-Z]{1,10}-\d+`
+3. **Link Generation**: Creates clickable links to `{jira_base_url}/browse/{ticket-id}`
+4. **Display**: Shows tickets as blue badges near each environment in the report
+
+#### Example Commit Messages:
+- ✅ `ABC-123: Fix authentication bug`
+- ✅ `Feature implementation for PROJ-456 and ABC-789`
+- ✅ `Multiple tickets: DEV-111, QA-222, RELEASE-333`
+- ❌ `123-ABC` (digits first)
+- ❌ `TOOLONGPROJECTNAME-123` (more than 10 characters)
 
 ### Expected Actuator Response
 Your `/actuator/info` endpoints should return:

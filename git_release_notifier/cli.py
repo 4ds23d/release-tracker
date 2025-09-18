@@ -71,7 +71,7 @@ def main(config: str, output: str, verbose: bool, cleanup: bool):
         # Generate report
         logger.info("Generating HTML report...")
         report_generator = HTMLReportGenerator()
-        report_generator.generate_report(analyses, output)
+        report_generator.generate_report(analyses, output, cfg.projects)
         
         # Cleanup if requested
         if cleanup:

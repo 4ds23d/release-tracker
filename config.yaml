@@ -8,6 +8,7 @@ projects:
       DEV: "https://dev-api.example.com"
     # verify_ssl: true  # Optional: Enable/disable SSL certificate verification (default: true)
     # use_version_fallback: true  # Optional: Use version as commit reference if git commit not found (default: true)
+    # jira_base_url: "https://yourcompany.atlassian.net"  # Optional: JIRA base URL for linking tickets found in commit messages
   
   # Example with version fallback disabled (strict git commit requirement)
   # - name: "strict-git-service"

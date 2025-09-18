@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+        .header .timestamp {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .project {
+            background: white;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .project-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .environments {
+            display: grid;
+            gap: 0;
+        }
+        .environment {
+            border-bottom: 1px solid #eee;
+        }
+        .environment:last-child {
+            border-bottom: none;
+        }
+        .env-header {
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .env-header:hover {
+            background-color: #f8f9fa;
+        }
+        .env-dev { background-color: #e3f2fd; }
+        .env-test { background-color: #fff3e0; }
+        .env-pre { background-color: #f3e5f5; }
+        .env-prod { background-color: #e8f5e8; }
+        
+        .env-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .version-badge {
+            background: rgba(255,255,255,0.8);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .commit-badge {
+            background: rgba(255,255,255,0.6);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.8em;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .commits-count {
+            background: #ff5722;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        .commits-list {
+            padding: 0 20px 20px 20px;
+            display: none;
+        }
+        .commits-list.expanded {
+            display: block;
+        }
+        .commit-item {
+            background: #f8f9fa;
+            margin: 8px 0;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        .commit-summary {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .commit-meta {
+            font-size: 0.85em;
+            color: #666;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .commit-id {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .no-commits {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .toggle-icon {
+            transition: transform 0.2s;
+        }
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Release Report</h1>
+        <div class="timestamp">Generated: 2025-09-18T14:30:00</div>
+    </div>
+
+    <div class="project">
+        <div class="project-header">
+            📦 user-management-service
+        </div>
+        
+        <div class="environments">
+            <div class="environment">
+                <div class="env-header env-dev" onclick="toggleCommits('user-management-service-DEV')">
+                    <div class="env-info">
+                        <span>DEV</span>
+                        <span class="version-badge">v2.4.0-SNAPSHOT</span>
+                        <span class="commit-badge">a7f3b2c1</span>
+                        <span class="commits-count">5 new commits</span>
+                    </div>
+                    <span class="toggle-icon" id="icon-user-management-service-DEV">▼</span>
+                </div>
+                
+                <div class="commits-list" id="commits-user-management-service-DEV">
+                    <div class="commit-item">
+                        <div class="commit-summary">Add user profile image upload feature</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">a7f3b2c1</span>
+                            <span>John Smith</span>
+                            <span>2025-09-18T13:45:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Fix password validation regex</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">b8e4c3d2</span>
+                            <span>Jane Doe</span>
+                            <span>2025-09-18T11:20:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Refactor authentication service</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">c9f5d4e3</span>
+                            <span>Mike Johnson</span>
+                            <span>2025-09-18T09:15:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Update user roles enum</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">d0a6e5f4</span>
+                            <span>Sarah Wilson</span>
+                            <span>2025-09-17T16:30:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Add unit tests for user service</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">e1b7f6g5</span>
+                            <span>Tom Brown</span>
+                            <span>2025-09-17T14:45:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="environment">
+                <div class="env-header env-test" onclick="toggleCommits('user-management-service-TEST')">
+                    <div class="env-info">
+                        <span>TEST</span>
+                        <span class="version-badge">v2.3.2</span>
+                        <span class="commit-badge">f2c8h7i6</span>
+                        <span class="commits-count">3 new commits</span>
+                    </div>
+                    <span class="toggle-icon" id="icon-user-management-service-TEST">▼</span>
+                </div>
+                
+                <div class="commits-list" id="commits-user-management-service-TEST">
+                    <div class="commit-item">
+                        <div class="commit-summary">Improve email validation logic</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">f2c8h7i6</span>
+                            <span>Alice Green</span>
+                            <span>2025-09-17T12:00:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Fix user registration bug</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">g3d9i8j7</span>
+                            <span>Bob White</span>
+                            <span>2025-09-17T10:30:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Update dependencies to latest versions</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">h4e0j9k8</span>
+                            <span>Carol Black</span>
+                            <span>2025-09-16T15:20:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="environment">
+                <div class="env-header env-pre" onclick="toggleCommits('user-management-service-PRE')">
+                    <div class="env-info">
+                        <span>PRE</span>
+                        <span class="version-badge">v2.3.1</span>
+                        <span class="commit-badge">i5f1k0l9</span>
+                        <span class="commits-count">1 new commit</span>
+                    </div>
+                    <span class="toggle-icon" id="icon-user-management-service-PRE">▼</span>
+                </div>
+                
+                <div class="commits-list" id="commits-user-management-service-PRE">
+                    <div class="commit-item">
+                        <div class="commit-summary">Hotfix: resolve session timeout issue</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">i5f1k0l9</span>
+                            <span>David Gray</span>
+                            <span>2025-09-16T09:45:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="environment">
+                <div class="env-header env-prod">
+                    <div class="env-info">
+                        <span>PROD</span>
+                        <span class="version-badge">v2.3.0</span>
+                        <span class="commit-badge">j6g2l1m0</span>
+                    </div>
+                </div>
+                <div class="no-commits">Production baseline - no commits shown</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="project">
+        <div class="project-header">
+            📦 payment-gateway
+        </div>
+        
+        <div class="environments">
+            <div class="environment">
+                <div class="env-header env-dev" onclick="toggleCommits('payment-gateway-DEV')">
+                    <div class="env-info">
+                        <span>DEV</span>
+                        <span class="version-badge">v1.8.0-SNAPSHOT</span>
+                        <span class="commit-badge">k7h3m2n1</span>
+                        <span class="commits-count">2 new commits</span>
+                    </div>
+                    <span class="toggle-icon" id="icon-payment-gateway-DEV">▼</span>
+                </div>
+                
+                <div class="commits-list" id="commits-payment-gateway-DEV">
+                    <div class="commit-item">
+                        <div class="commit-summary">Add support for new payment provider</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">k7h3m2n1</span>
+                            <span>Emma Davis</span>
+                            <span>2025-09-18T08:30:00</span>
+                        </div>
+                    </div>
+                    <div class="commit-item">
+                        <div class="commit-summary">Improve error handling for failed payments</div>
+                        <div class="commit-meta">
+                            <span class="commit-id">l8i4n3o2</span>
+                            <span>Frank Miller</span>
+                            <span>2025-09-17T17:00:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="environment">
+                <div class="env-header env-test">
+                    <div class="env-info">
+                        <span>TEST</span>
+                        <span class="version-badge">v1.7.3</span>
+                        <span class="commit-badge">m9j5o4p3</span>
+                    </div>
+                </div>
+                <div class="no-commits">No new commits compared to baseline</div>
+            </div>
+
+            <div class="environment">
+                <div class="env-header env-pre">
+                    <div class="env-info">
+                        <span>PRE</span>
+                        <span class="version-badge">v1.7.3</span>
+                        <span class="commit-badge">m9j5o4p3</span>
+                    </div>
+                </div>
+                <div class="no-commits">No new commits compared to baseline</div>
+            </div>
+
+            <div class="environment">
+                <div class="env-header env-prod">
+                    <div class="env-info">
+                        <span>PROD</span>
+                        <span class="version-badge">v1.7.3</span>
+                        <span class="commit-badge">m9j5o4p3</span>
+                    </div>
+                </div>
+                <div class="no-commits">Production baseline - no commits shown</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCommits(id) {
+            const commitsList = document.getElementById('commits-' + id);
+            const icon = document.getElementById('icon-' + id);
+            
+            if (commitsList) {
+                commitsList.classList.toggle('expanded');
+                if (icon) {
+                    icon.classList.toggle('rotated');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

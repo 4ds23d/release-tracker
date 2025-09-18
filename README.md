@@ -1,42 +1,53 @@
-# Git Release Notifier
+# Deployment Diff 🚀
 
-A Python command-line application for analyzing deployment states across different environments and generating HTML reports showing what changes are deployed where.
+[![Python](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+A powerful Python CLI tool that analyzes deployment states across environments and generates beautiful HTML reports showing exactly what changes are deployed where.
 
-- Fetches version information from Spring Boot actuator endpoints
-- Compares git commits between environments (DEV → TEST → PRE → PROD)
-- Generates beautiful HTML reports with expandable commit details
-- Supports multiple projects and repositories
-- Automatic git repository cloning and updating
+## ✨ Features
 
-## Quick Start
+- 🔍 **Smart Environment Analysis** - Automatically compares DEV → TEST → PRE → PROD deployments
+- 🌐 **Spring Boot Integration** - Fetches version info from actuator endpoints
+- 📊 **Interactive HTML Reports** - Beautiful, expandable commit details with modern UI
+- 🔄 **Multi-Project Support** - Handle multiple repositories and services
+- ⚡ **Auto Git Management** - Clones and updates repositories automatically
+- 🎯 **Commit Diff Logic** - Shows exactly what's new in each environment
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🖼️ Screenshot
 
-2. **Configure your projects:**
-   Edit `config.yaml` with your project details:
-   ```yaml
-   projects:
-     - name: "my-project"
-       repoUrl: "https://github.com/user/my-project.git"
-       env:
-         PROD: "https://prod-api.example.com"
-         PRE: "https://pre-api.example.com"
-         TEST: "https://test-api.example.com"
-         DEV: "https://dev-api.example.com"
-   ```
+![Example Report](example_report.html)
+*Interactive HTML report showing deployment differences*
 
-3. **Run the analysis:**
-   ```bash
-   python main.py --config config.yaml --output report.html
-   ```
+## 🚀 Quick Start
 
-4. **Open the generated report:**
-   Open `report.html` in your browser to see the deployment analysis.
+### 1. Clone and Install
+```bash
+git clone https://github.com/yourusername/deployment-diff.git
+cd deployment-diff
+pip install -r requirements.txt
+```
+
+### 2. Configure Projects
+Edit `config.yaml`:
+```yaml
+projects:
+  - name: "user-service"
+    repoUrl: "https://github.com/company/user-service.git"
+    env:
+      PROD: "https://api-prod.company.com"
+      PRE: "https://api-pre.company.com" 
+      TEST: "https://api-test.company.com"
+      DEV: "https://api-dev.company.com"
+```
+
+### 3. Generate Report
+```bash
+python main.py --config config.yaml --output report.html
+```
+
+### 4. View Results
+Open `report.html` in your browser to explore the deployment analysis.
 
 ## Usage
 

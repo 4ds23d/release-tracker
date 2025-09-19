@@ -62,11 +62,13 @@ class TestHTMLReportGenerator:
             Path(output_file).unlink()
     
     def test_generate_report_multiple_projects(self):
-        # Create multiple mock projects
+        # Create multiple mock projects - one with changes, one up-to-date
+        commits = [{'id': 'abc123', 'short_id': 'abc123ab', 'message': 'Test', 'summary': 'Test', 'author': 'Author', 'date': '2023-01-01T12:00:00'}]
         analysis1 = ProjectAnalysis(
             project_name='project1',
             environments={
-                'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', [])
+                'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', []),
+                'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', commits)
             }
         )
         
@@ -88,8 +90,11 @@ class TestHTMLReportGenerator:
             content = Path(output_file).read_text(encoding='utf-8')
             assert 'project1' in content
             assert 'project2' in content
+            # project1 has changes so versions will be in detailed section
             assert '1.0.0' in content
-            assert '2.0.0' in content
+            assert '1.1.0' in content
+            # project2 is up-to-date so should be in up-to-date section
+            assert 'Projects Up to Date' in content
             
         finally:
             Path(output_file).unlink()
@@ -181,7 +186,8 @@ class TestHTMLReportGenerator:
         # Test that template can render with basic data
         rendered = template.render(
             generated_at='2023-01-01T12:00:00',
-            projects=[],
+            projects_with_changes=[],
+            projects_up_to_date=[],
             environment_order=['DEV', 'TEST', 'PRE', 'PROD']
         )
         
@@ -193,7 +199,8 @@ class TestHTMLReportGenerator:
         template = self.generator._get_template()
         rendered = template.render(
             generated_at='2023-01-01T12:00:00',
-            projects=[],
+            projects_with_changes=[],
+            projects_up_to_date=[],
             environment_order=['DEV', 'TEST', 'PRE', 'PROD']
         )
         
@@ -207,7 +214,8 @@ class TestHTMLReportGenerator:
         template = self.generator._get_template()
         rendered = template.render(
             generated_at='2023-01-01T12:00:00',
-            projects=[],
+            projects_with_changes=[],
+            projects_up_to_date=[],
             environment_order=['DEV', 'TEST', 'PRE', 'PROD']
         )
         
@@ -220,6 +228,10 @@ class TestHTMLReportGenerator:
         assert '.version-commit-badge' in rendered
         assert '.commits-count' in rendered
         assert '.jira-count' in rendered
+        # Check new up-to-date styles
+        assert '.up-to-date-section' in rendered
+        assert '.up-to-date-item' in rendered
+        assert '.changes-section' in rendered
     
     @patch('release_trucker.report_generator.Path')
     def test_generate_report_file_write_error(self, mock_path):
@@ -236,7 +248,7 @@ class TestHTMLReportGenerator:
             self.generator.generate_report([analysis], 'test.html')
     
     def test_template_handles_missing_commits(self):
-        # Test template with environments that have no commits
+        # Test template with environments that have no commits (up-to-date project)
         environments = {
             'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', []),
             'PRE': EnvironmentCommits('PRE', '1.0.0', 'prod123', [])  # Same as PROD, no new commits
@@ -255,7 +267,9 @@ class TestHTMLReportGenerator:
             
             content = Path(output_file).read_text(encoding='utf-8')
             assert 'no-commits-project' in content
-            assert 'No new commits compared to baseline' in content or 'Production baseline' in content
+            # This project should be in the up-to-date section since it has no changes
+            assert 'Projects Up to Date' in content
+            assert 'All environments are synchronized with PROD' in content
             
         finally:
             Path(output_file).unlink()
@@ -293,6 +307,169 @@ class TestHTMLReportGenerator:
             assert 'Multi-line commit message' in content  # Summary
             assert 'John Doe <john@example.com>' in content  # Author
             assert '2023-01-01T12:00:00' in content  # Date (truncated to 19 chars)
+            
+        finally:
+            Path(output_file).unlink()
+    
+    def test_project_has_changes_with_commits(self):
+        # Test project with commits in non-PROD environment
+        commits = [{'id': 'abc123', 'message': 'Test commit'}]
+        environments = {
+            'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', []),
+            'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', commits)
+        }
+        
+        analysis = ProjectAnalysis('test-project', environments)
+        assert self.generator._project_has_changes(analysis) is True
+    
+    def test_project_has_changes_with_jira_tickets(self):
+        # Test project with JIRA tickets in non-PROD environment
+        environments = {
+            'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', [], set()),
+            'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', [], {'ABC-123'})
+        }
+        
+        analysis = ProjectAnalysis('test-project', environments)
+        assert self.generator._project_has_changes(analysis) is True
+    
+    def test_project_has_changes_no_changes(self):
+        # Test project with no changes (up to date)
+        environments = {
+            'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', [], set()),
+            'PRE': EnvironmentCommits('PRE', '1.0.0', 'prod123', [], set()),
+            'TEST': EnvironmentCommits('TEST', '1.0.0', 'prod123', [], set()),
+            'DEV': EnvironmentCommits('DEV', '1.0.0', 'prod123', [], set())
+        }
+        
+        analysis = ProjectAnalysis('test-project', environments)
+        assert self.generator._project_has_changes(analysis) is False
+    
+    def test_project_has_changes_prod_only(self):
+        # Test project with only PROD environment
+        environments = {
+            'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', [{'id': 'abc'}], {'ABC-123'})
+        }
+        
+        analysis = ProjectAnalysis('test-project', environments)
+        assert self.generator._project_has_changes(analysis) is False
+    
+    def test_generate_report_mixed_projects(self):
+        # Test report with both up-to-date and projects with changes
+        # Project with changes
+        commits = [{'id': 'abc123', 'short_id': 'abc123ab', 'message': 'Test', 'summary': 'Test', 'author': 'Author', 'date': '2023-01-01T12:00:00'}]
+        project_with_changes = ProjectAnalysis(
+            'project-with-changes',
+            {
+                'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', []),
+                'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', commits)
+            }
+        )
+        
+        # Project up to date
+        project_up_to_date = ProjectAnalysis(
+            'project-up-to-date',
+            {
+                'PROD': EnvironmentCommits('PROD', '2.0.0', 'sync123', []),
+                'DEV': EnvironmentCommits('DEV', '2.0.0', 'sync123', [])
+            }
+        )
+        
+        analyses = [project_with_changes, project_up_to_date]
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            output_file = f.name
+        
+        try:
+            self.generator.generate_report(analyses, output_file)
+            
+            content = Path(output_file).read_text(encoding='utf-8')
+            
+            # Check both sections exist
+            assert 'Projects Up to Date' in content
+            assert 'Projects with Changes to Deploy' in content
+            
+            # Check project names appear in correct sections
+            assert 'project-with-changes' in content
+            assert 'project-up-to-date' in content
+            
+            # Check up-to-date styling
+            assert 'up-to-date-section' in content
+            assert 'All environments are synchronized with PROD' in content
+            
+        finally:
+            Path(output_file).unlink()
+    
+    def test_generate_report_only_up_to_date_projects(self):
+        # Test report with only up-to-date projects
+        project1 = ProjectAnalysis(
+            'sync-project-1',
+            {
+                'PROD': EnvironmentCommits('PROD', '1.0.0', 'sync123', []),
+                'DEV': EnvironmentCommits('DEV', '1.0.0', 'sync123', [])
+            }
+        )
+        
+        project2 = ProjectAnalysis(
+            'sync-project-2',
+            {
+                'PROD': EnvironmentCommits('PROD', '2.0.0', 'sync456', []),
+                'DEV': EnvironmentCommits('DEV', '2.0.0', 'sync456', [])
+            }
+        )
+        
+        analyses = [project1, project2]
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            output_file = f.name
+        
+        try:
+            self.generator.generate_report(analyses, output_file)
+            
+            content = Path(output_file).read_text(encoding='utf-8')
+            
+            # Should only have up-to-date section
+            assert 'Projects Up to Date' in content
+            assert 'Projects with Changes to Deploy' not in content
+            assert 'sync-project-1' in content
+            assert 'sync-project-2' in content
+            
+        finally:
+            Path(output_file).unlink()
+    
+    def test_generate_report_only_projects_with_changes(self):
+        # Test report with only projects that have changes
+        commits = [{'id': 'abc123', 'short_id': 'abc123ab', 'message': 'Test', 'summary': 'Test', 'author': 'Author', 'date': '2023-01-01T12:00:00'}]
+        project1 = ProjectAnalysis(
+            'changed-project-1',
+            {
+                'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', []),
+                'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', commits)
+            }
+        )
+        
+        project2 = ProjectAnalysis(
+            'changed-project-2',
+            {
+                'PROD': EnvironmentCommits('PROD', '2.0.0', 'prod789', []),
+                'TEST': EnvironmentCommits('TEST', '2.1.0', 'test123', commits)
+            }
+        )
+        
+        analyses = [project1, project2]
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            output_file = f.name
+        
+        try:
+            self.generator.generate_report(analyses, output_file)
+            
+            content = Path(output_file).read_text(encoding='utf-8')
+            
+            # Should only have changes section
+            assert 'Projects with Changes to Deploy' in content
+            assert 'Projects Up to Date' not in content
+            assert 'changed-project-1' in content
+            assert 'changed-project-2' in content
             
         finally:
             Path(output_file).unlink()

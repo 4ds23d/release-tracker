@@ -171,6 +171,70 @@ def create_mock_analyses():
         )
     }
     
+    # Payment Service - Up to date across all environments
+    payment_service_envs = {
+        "PROD": EnvironmentCommits(
+            environment="PROD",
+            version="3.2.1",
+            commit_id="stable123abc456def",
+            commits=[],
+            jira_tickets=set()
+        ),
+        "PRE": EnvironmentCommits(
+            environment="PRE",
+            version="3.2.1",
+            commit_id="stable123abc456def",
+            commits=[],
+            jira_tickets=set()
+        ),
+        "TEST": EnvironmentCommits(
+            environment="TEST",
+            version="3.2.1",
+            commit_id="stable123abc456def",
+            commits=[],
+            jira_tickets=set()
+        ),
+        "DEV": EnvironmentCommits(
+            environment="DEV",
+            version="3.2.1",
+            commit_id="stable123abc456def",
+            commits=[],
+            jira_tickets=set()
+        )
+    }
+    
+    # Notification Service - Another up to date service
+    notification_service_envs = {
+        "PROD": EnvironmentCommits(
+            environment="PROD",
+            version="2.0.5",
+            commit_id="prod789xyz123abc",
+            commits=[],
+            jira_tickets=set()
+        ),
+        "PRE": EnvironmentCommits(
+            environment="PRE",
+            version="2.0.5",
+            commit_id="prod789xyz123abc",
+            commits=[],
+            jira_tickets=set()
+        ),
+        "TEST": EnvironmentCommits(
+            environment="TEST",
+            version="2.0.5",
+            commit_id="prod789xyz123abc",
+            commits=[],
+            jira_tickets=set()
+        ),
+        "DEV": EnvironmentCommits(
+            environment="DEV",
+            version="2.0.5",
+            commit_id="prod789xyz123abc",
+            commits=[],
+            jira_tickets=set()
+        )
+    }
+    
     # Create project analyses
     analyses = [
         ProjectAnalysis(
@@ -180,6 +244,14 @@ def create_mock_analyses():
         ProjectAnalysis(
             project_name="api-gateway", 
             environments=gateway_envs
+        ),
+        ProjectAnalysis(
+            project_name="payment-service",
+            environments=payment_service_envs
+        ),
+        ProjectAnalysis(
+            project_name="notification-service",
+            environments=notification_service_envs
         )
     ]
     
@@ -209,6 +281,28 @@ def create_mock_project_configs():
                 "DEV": "https://gateway-dev.company.com"
             },
             jira_base_url="https://company.atlassian.net"
+        ),
+        ProjectConfig(
+            name="payment-service",
+            repoUrl="https://github.com/company/payment-service.git",
+            env={
+                "PROD": "https://payments-prod.company.com",
+                "PRE": "https://payments-pre.company.com",
+                "TEST": "https://payments-test.company.com",
+                "DEV": "https://payments-dev.company.com"
+            },
+            jira_base_url="https://company.atlassian.net"
+        ),
+        ProjectConfig(
+            name="notification-service",
+            repoUrl="https://github.com/company/notification-service.git",
+            env={
+                "PROD": "https://notifications-prod.company.com",
+                "PRE": "https://notifications-pre.company.com",
+                "TEST": "https://notifications-test.company.com",
+                "DEV": "https://notifications-dev.company.com"
+            },
+            jira_base_url="https://company.atlassian.net"
         )
     ]
 
@@ -228,14 +322,40 @@ def main():
     
     print(f"✅ Demo report generated: {output_file}")
     print(f"📊 Included {len(analyses)} projects with JIRA integration")
-    print("🎫 JIRA tickets included:")
+    
+    # Count projects with changes vs up-to-date
+    projects_with_changes = 0
+    projects_up_to_date = 0
     
     for analysis in analyses:
-        print(f"\n  📦 {analysis.project_name}:")
+        has_changes = False
+        for env_name, env_data in analysis.environments.items():
+            if env_name != "PROD" and (env_data.commits or env_data.jira_tickets):
+                has_changes = True
+                break
+        
+        if has_changes:
+            projects_with_changes += 1
+        else:
+            projects_up_to_date += 1
+    
+    print(f"🚀 Projects with changes: {projects_with_changes}")
+    print(f"✅ Projects up to date: {projects_up_to_date}")
+    print("\n🎫 JIRA tickets included:")
+    
+    for analysis in analyses:
+        has_tickets = False
         for env_name, env_data in analysis.environments.items():
             if env_data.jira_tickets:
-                tickets = ", ".join(sorted(env_data.jira_tickets))
-                print(f"    {env_name}: {tickets}")
+                has_tickets = True
+                break
+        
+        if has_tickets:
+            print(f"\n  📦 {analysis.project_name}:")
+            for env_name, env_data in analysis.environments.items():
+                if env_data.jira_tickets:
+                    tickets = ", ".join(sorted(env_data.jira_tickets))
+                    print(f"    {env_name}: {tickets}")
     
     return output_file
 

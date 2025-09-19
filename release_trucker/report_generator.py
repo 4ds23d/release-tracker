@@ -29,10 +29,21 @@ class HTMLReportGenerator:
         if project_configs:
             project_config_map = {config.name: config for config in project_configs}
         
+        # Classify projects as up-to-date or having changes
+        projects_with_changes = []
+        projects_up_to_date = []
+        
+        for project in analyses:
+            if self._project_has_changes(project):
+                projects_with_changes.append(project)
+            else:
+                projects_up_to_date.append(project)
+        
         # Prepare data for template
         report_data = {
             'generated_at': datetime.now().isoformat(),
-            'projects': analyses,
+            'projects_with_changes': projects_with_changes,
+            'projects_up_to_date': projects_up_to_date,
             'environment_order': ['DEV', 'TEST', 'PRE', 'PROD'],
             'project_configs': project_config_map
         }
@@ -45,6 +56,31 @@ class HTMLReportGenerator:
         output_path.write_text(html_content, encoding='utf-8')
         
         self.logger.info(f"Report generated: {output_path.absolute()}")
+    
+    def _project_has_changes(self, project: ProjectAnalysis) -> bool:
+        """
+        Determine if a project has any changes to propagate between environments.
+        
+        A project is considered "up to date" when:
+        - All non-PROD environments have no commits
+        - All non-PROD environments have no JIRA tickets
+        
+        Args:
+            project: ProjectAnalysis object
+            
+        Returns:
+            True if project has changes, False if up to date
+        """
+        for env_name, env_data in project.environments.items():
+            # Skip PROD as it's the baseline
+            if env_name == "PROD":
+                continue
+                
+            # Check if environment has commits or JIRA tickets
+            if env_data.commits or env_data.jira_tickets:
+                return True
+        
+        return False
     
     def _get_template(self) -> Template:
         """Get Jinja2 template for HTML report."""
@@ -239,6 +275,61 @@ class HTMLReportGenerator:
         .toggle-icon.rotated {
             transform: rotate(180deg);
         }
+        .up-to-date-section {
+            margin-bottom: 30px;
+        }
+        .up-to-date-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        .up-to-date-projects {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 0;
+        }
+        .up-to-date-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .up-to-date-item:last-child {
+            border-bottom: none;
+        }
+        .up-to-date-icon {
+            font-size: 1.5em;
+            color: #28a745;
+        }
+        .up-to-date-info {
+            flex: 1;
+        }
+        .up-to-date-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .up-to-date-status {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .changes-section {
+            margin-bottom: 30px;
+        }
+        .changes-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -247,70 +338,98 @@ class HTMLReportGenerator:
         <div class="timestamp">Generated: {{ generated_at }}</div>
     </div>
 
-    {% for project in projects %}
-    <div class="project">
-        <div class="project-header">
-            📦 {{ project.project_name }}
+    {% if projects_up_to_date %}
+    <div class="up-to-date-section">
+        <div class="up-to-date-header">
+            ✅ Projects Up to Date
         </div>
-        
-        <div class="environments">
-            {% for env in environment_order %}
-                {% if env in project.environments %}
-                    {% set env_data = project.environments[env] %}
-                    <div class="environment">
-                        <div class="env-header env-{{ env.lower() }}">
-                            <div class="env-info">
-                                <span>{{ env }}</span>
-                                <span class="version-commit-badge">{{ env_data.version }}({{ env_data.commit_id[:8] }})</span>
-                                {% if env_data.commits %}
-                                    <span class="commits-count" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">{{ env_data.commits|length }} commits</span>
-                                {% endif %}
-                                {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
-                                    <span class="jira-count" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">{{ env_data.jira_tickets|length }} tickets</span>
-                                {% endif %}
-                            </div>
-                            <div class="toggle-icons">
-                                {% if env_data.commits %}
-                                    <span class="toggle-icon" id="commits-icon-{{ project.project_name }}-{{ env }}" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">▼</span>
-                                {% endif %}
-                                {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
-                                    <span class="toggle-icon" id="jira-icon-{{ project.project_name }}-{{ env }}" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">🎫</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
-                            <div class="jira-tickets" id="jira-{{ project.project_name }}-{{ env }}">
-                                <h4>🎫 JIRA Tickets:</h4>
-                                {% for ticket in env_data.jira_tickets %}
-                                    <a href="{{ project_configs[project.project_name].jira_base_url }}/browse/{{ ticket }}" 
-                                       target="_blank" class="jira-ticket">{{ ticket }}</a>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        
-                        {% if env_data.commits %}
-                            <div class="commits-list" id="commits-{{ project.project_name }}-{{ env }}">
-                                {% for commit in env_data.commits %}
-                                    <div class="commit-item">
-                                        <div class="commit-summary">{{ commit.summary }}</div>
-                                        <div class="commit-meta">
-                                            <span class="commit-id">{{ commit.short_id }}</span>
-                                            <span>{{ commit.author }}</span>
-                                            <span>{{ commit.date[:19] }}</span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% elif env != 'PROD' %}
-                            <div class="no-commits">No new commits compared to baseline</div>
-                        {% endif %}
-                    </div>
-                {% endif %}
+        <div class="up-to-date-projects">
+            {% for project in projects_up_to_date %}
+            <div class="up-to-date-item">
+                <div class="up-to-date-icon">📦</div>
+                <div class="up-to-date-info">
+                    <div class="up-to-date-name">{{ project.project_name }}</div>
+                    <div class="up-to-date-status">All environments are synchronized with PROD</div>
+                </div>
+                <div class="up-to-date-icon">✅</div>
+            </div>
             {% endfor %}
         </div>
     </div>
-    {% endfor %}
+    {% endif %}
+
+    {% if projects_with_changes %}
+    <div class="changes-section">
+        <div class="changes-header">
+            🚀 Projects with Changes to Deploy
+        </div>
+        
+        {% for project in projects_with_changes %}
+        <div class="project">
+            <div class="project-header">
+                📦 {{ project.project_name }}
+            </div>
+            
+            <div class="environments">
+                {% for env in environment_order %}
+                    {% if env in project.environments %}
+                        {% set env_data = project.environments[env] %}
+                        <div class="environment">
+                            <div class="env-header env-{{ env.lower() }}">
+                                <div class="env-info">
+                                    <span>{{ env }}</span>
+                                    <span class="version-commit-badge">{{ env_data.version }}({{ env_data.commit_id[:8] }})</span>
+                                    {% if env_data.commits %}
+                                        <span class="commits-count" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">{{ env_data.commits|length }} commits</span>
+                                    {% endif %}
+                                    {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
+                                        <span class="jira-count" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">{{ env_data.jira_tickets|length }} tickets</span>
+                                    {% endif %}
+                                </div>
+                                <div class="toggle-icons">
+                                    {% if env_data.commits %}
+                                        <span class="toggle-icon" id="commits-icon-{{ project.project_name }}-{{ env }}" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">▼</span>
+                                    {% endif %}
+                                    {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
+                                        <span class="toggle-icon" id="jira-icon-{{ project.project_name }}-{{ env }}" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">🎫</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
+                                <div class="jira-tickets" id="jira-{{ project.project_name }}-{{ env }}">
+                                    <h4>🎫 JIRA Tickets:</h4>
+                                    {% for ticket in env_data.jira_tickets %}
+                                        <a href="{{ project_configs[project.project_name].jira_base_url }}/browse/{{ ticket }}" 
+                                           target="_blank" class="jira-ticket">{{ ticket }}</a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            {% if env_data.commits %}
+                                <div class="commits-list" id="commits-{{ project.project_name }}-{{ env }}">
+                                    {% for commit in env_data.commits %}
+                                        <div class="commit-item">
+                                            <div class="commit-summary">{{ commit.summary }}</div>
+                                            <div class="commit-meta">
+                                                <span class="commit-id">{{ commit.short_id }}</span>
+                                                <span>{{ commit.author }}</span>
+                                                <span>{{ commit.date[:19] }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% elif env != 'PROD' %}
+                                <div class="no-commits">No new commits compared to baseline</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <script>
         function toggleCommits(id) {

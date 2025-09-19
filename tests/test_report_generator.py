@@ -207,6 +207,8 @@ class TestHTMLReportGenerator:
         # Check that JavaScript functions exist
         assert 'function toggleCommits' in rendered
         assert 'function toggleJiraTickets' in rendered
+        assert 'function searchJiraTickets' in rendered
+        assert 'function clearSearch' in rendered
         assert 'expanded' in rendered
         assert 'rotated' in rendered
     
@@ -234,6 +236,10 @@ class TestHTMLReportGenerator:
         assert '.changes-section' in rendered
         # Check inline no-commits style
         assert '.no-commits-inline' in rendered
+        # Check search functionality styles
+        assert '.search-container' in rendered
+        assert '.search-highlight' in rendered
+        assert '.jira-ticket-highlight' in rendered
     
     @patch('release_trucker.report_generator.Path')
     def test_generate_report_file_write_error(self, mock_path):
@@ -502,6 +508,43 @@ class TestHTMLReportGenerator:
             
             # The message should be inline, not in a separate div
             assert '<span class="no-commits-inline">No new commits compared to baseline</span>' in content
+            
+        finally:
+            Path(output_file).unlink()
+    
+    def test_search_functionality_elements(self):
+        # Test that search input and button are present in template
+        project = ProjectAnalysis(
+            'test-project',
+            {
+                'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', [], {'ABC-123'}),
+                'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', [], {'XYZ-789'})
+            }
+        )
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            output_file = f.name
+        
+        try:
+            self.generator.generate_report([project], output_file)
+            
+            content = Path(output_file).read_text(encoding='utf-8')
+            
+            # Check search container and elements are present
+            assert 'search-container' in content
+            assert 'id="jira-search"' in content
+            assert 'id="clear-search"' in content
+            assert 'placeholder="Search by JIRA ticket' in content
+            
+            # Check search JavaScript functions are present
+            assert 'searchJiraTickets()' in content
+            assert 'clearSearch()' in content
+            assert 'clearHighlights()' in content
+            assert 'showAllProjects()' in content
+            
+            # Check event listeners are set up
+            assert 'addEventListener(' in content
+            assert 'DOMContentLoaded' in content
             
         finally:
             Path(output_file).unlink()

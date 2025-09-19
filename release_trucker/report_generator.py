@@ -115,6 +115,47 @@ class HTMLReportGenerator:
             opacity: 0.9;
             font-size: 1.1em;
         }
+        .search-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+        #jira-search {
+            padding: 10px 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1em;
+            width: 300px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        #jira-search::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        #jira-search:focus {
+            border-color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.2);
+            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+        #clear-search {
+            padding: 10px 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        #clear-search:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+        }
         .project {
             background: white;
             margin-bottom: 30px;
@@ -338,12 +379,40 @@ class HTMLReportGenerator:
             font-weight: bold;
             text-align: center;
         }
+        .search-hidden {
+            display: none !important;
+        }
+        .search-highlight {
+            background: #fff3cd !important;
+            border-left: 4px solid #ffc107 !important;
+            animation: highlightPulse 1.5s ease-in-out;
+        }
+        @keyframes highlightPulse {
+            0% { background: #fff3cd; }
+            50% { background: #ffeaa7; }
+            100% { background: #fff3cd; }
+        }
+        .jira-ticket-highlight {
+            background: #ffc107 !important;
+            color: #212529 !important;
+            font-weight: bold;
+            animation: ticketPulse 1s ease-in-out;
+        }
+        @keyframes ticketPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Release Tracker</h1>
         <div class="timestamp">Generated: {{ generated_at }}</div>
+        <div class="search-container">
+            <input type="text" id="jira-search" placeholder="Search by JIRA ticket (e.g., AUTH-123)" />
+            <button id="clear-search">Clear</button>
+        </div>
     </div>
 
     {% if projects_up_to_date %}
@@ -464,6 +533,166 @@ class HTMLReportGenerator:
                 }
             }
         }
+        
+        function searchJiraTickets() {
+            const searchTerm = document.getElementById('jira-search').value.trim().toLowerCase();
+            const allProjects = document.querySelectorAll('.project');
+            const upToDateSection = document.querySelector('.up-to-date-section');
+            const changesSection = document.querySelector('.changes-section');
+            
+            // Clear previous highlights
+            clearHighlights();
+            
+            if (!searchTerm) {
+                // Show all projects when search is empty
+                showAllProjects();
+                return;
+            }
+            
+            let hasVisibleProjects = false;
+            let hasVisibleChangesProjects = false;
+            
+            // Search in projects with changes
+            allProjects.forEach(project => {
+                const environments = project.querySelectorAll('.environment');
+                let projectHasMatch = false;
+                
+                environments.forEach(env => {
+                    const jiraTickets = env.querySelectorAll('.jira-ticket');
+                    let envHasMatch = false;
+                    
+                    jiraTickets.forEach(ticket => {
+                        const ticketText = ticket.textContent.toLowerCase();
+                        if (ticketText.includes(searchTerm)) {
+                            envHasMatch = true;
+                            projectHasMatch = true;
+                            ticket.classList.add('jira-ticket-highlight');
+                        }
+                    });
+                    
+                    if (envHasMatch) {
+                        env.classList.add('search-highlight');
+                        // Auto-expand JIRA tickets when found
+                        const jiraSection = env.querySelector('.jira-tickets');
+                        if (jiraSection && !jiraSection.classList.contains('expanded')) {
+                            const envId = env.querySelector('.jira-count')?.getAttribute('onclick')?.match(/toggleJiraTickets\\('([^']+)'\\)/)?.[1];
+                            if (envId) {
+                                toggleJiraTickets(envId);
+                            }
+                        }
+                    }
+                });
+                
+                if (projectHasMatch) {
+                    project.style.display = 'block';
+                    hasVisibleProjects = true;
+                    hasVisibleChangesProjects = true;
+                } else {
+                    project.style.display = 'none';
+                }
+            });
+            
+            // Hide up-to-date section during search (they don't have JIRA tickets visible)
+            if (upToDateSection) {
+                upToDateSection.style.display = 'none';
+            }
+            
+            // Show/hide changes section based on results
+            if (changesSection) {
+                if (hasVisibleChangesProjects) {
+                    changesSection.style.display = 'block';
+                } else {
+                    changesSection.style.display = 'none';
+                    // Show "no results" message
+                    showNoResultsMessage();
+                }
+            }
+        }
+        
+        function clearSearch() {
+            document.getElementById('jira-search').value = '';
+            clearHighlights();
+            showAllProjects();
+            hideNoResultsMessage();
+        }
+        
+        function clearHighlights() {
+            // Remove search highlights
+            document.querySelectorAll('.search-highlight').forEach(el => {
+                el.classList.remove('search-highlight');
+            });
+            
+            // Remove ticket highlights
+            document.querySelectorAll('.jira-ticket-highlight').forEach(el => {
+                el.classList.remove('jira-ticket-highlight');
+            });
+        }
+        
+        function showAllProjects() {
+            // Show all projects
+            document.querySelectorAll('.project').forEach(project => {
+                project.style.display = 'block';
+            });
+            
+            // Show both sections
+            const upToDateSection = document.querySelector('.up-to-date-section');
+            const changesSection = document.querySelector('.changes-section');
+            
+            if (upToDateSection) upToDateSection.style.display = 'block';
+            if (changesSection) changesSection.style.display = 'block';
+        }
+        
+        function showNoResultsMessage() {
+            // Remove existing no-results message
+            hideNoResultsMessage();
+            
+            // Create and show no results message
+            const noResults = document.createElement('div');
+            noResults.id = 'no-results-message';
+            noResults.style.cssText = `
+                text-align: center;
+                padding: 40px;
+                color: #666;
+                font-style: italic;
+                font-size: 1.1em;
+                background: white;
+                border-radius: 10px;
+                margin: 20px 0;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `;
+            noResults.innerHTML = '🔍 No JIRA tickets found matching "' + document.getElementById('jira-search').value + '"';
+            
+            const changesSection = document.querySelector('.changes-section');
+            if (changesSection) {
+                changesSection.appendChild(noResults);
+            }
+        }
+        
+        function hideNoResultsMessage() {
+            const noResults = document.getElementById('no-results-message');
+            if (noResults) {
+                noResults.remove();
+            }
+        }
+        
+        // Initialize search functionality when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('jira-search');
+            const clearButton = document.getElementById('clear-search');
+            
+            // Real-time search as user types
+            searchInput.addEventListener('input', searchJiraTickets);
+            
+            // Clear search button
+            clearButton.addEventListener('click', clearSearch);
+            
+            // Allow Enter key to trigger search
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchJiraTickets();
+                }
+            });
+        });
     </script>
 </body>
 </html>

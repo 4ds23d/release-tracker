@@ -232,6 +232,8 @@ class TestHTMLReportGenerator:
         assert '.up-to-date-section' in rendered
         assert '.up-to-date-item' in rendered
         assert '.changes-section' in rendered
+        # Check inline no-commits style
+        assert '.no-commits-inline' in rendered
     
     @patch('release_trucker.report_generator.Path')
     def test_generate_report_file_write_error(self, mock_path):
@@ -470,6 +472,36 @@ class TestHTMLReportGenerator:
             assert 'Projects Up to Date' not in content
             assert 'changed-project-1' in content
             assert 'changed-project-2' in content
+            
+        finally:
+            Path(output_file).unlink()
+    
+    def test_inline_no_commits_message(self):
+        # Test that "No new commits" appears inline when environment has no commits
+        commits = [{'id': 'abc123', 'short_id': 'abc123ab', 'message': 'Test', 'summary': 'Test', 'author': 'Author', 'date': '2023-01-01T12:00:00'}]
+        project = ProjectAnalysis(
+            'test-project',
+            {
+                'PROD': EnvironmentCommits('PROD', '1.0.0', 'prod123', []),
+                'PRE': EnvironmentCommits('PRE', '1.0.0', 'prod123', []),  # No commits
+                'DEV': EnvironmentCommits('DEV', '1.1.0', 'dev456', commits)  # Has commits
+            }
+        )
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            output_file = f.name
+        
+        try:
+            self.generator.generate_report([project], output_file)
+            
+            content = Path(output_file).read_text(encoding='utf-8')
+            
+            # Check that inline no-commits message appears for PRE environment
+            assert 'no-commits-inline' in content
+            assert 'No new commits compared to baseline' in content
+            
+            # The message should be inline, not in a separate div
+            assert '<span class="no-commits-inline">No new commits compared to baseline</span>' in content
             
         finally:
             Path(output_file).unlink()

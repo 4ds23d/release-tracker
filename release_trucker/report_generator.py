@@ -269,6 +269,14 @@ class HTMLReportGenerator:
             color: #666;
             font-style: italic;
         }
+        .no-commits-inline {
+            color: #666;
+            font-style: italic;
+            font-size: 0.9em;
+            background: rgba(108, 117, 125, 0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
         .toggle-icon {
             transition: transform 0.2s;
         }
@@ -381,6 +389,8 @@ class HTMLReportGenerator:
                                     <span class="version-commit-badge">{{ env_data.version }}({{ env_data.commit_id[:8] }})</span>
                                     {% if env_data.commits %}
                                         <span class="commits-count" onclick="toggleCommits('{{ project.project_name }}-{{ env }}')">{{ env_data.commits|length }} commits</span>
+                                    {% elif env != 'PROD' %}
+                                        <span class="no-commits-inline">No new commits compared to baseline</span>
                                     {% endif %}
                                     {% if env_data.jira_tickets and project.project_name in project_configs and project_configs[project.project_name].jira_base_url %}
                                         <span class="jira-count" onclick="toggleJiraTickets('{{ project.project_name }}-{{ env }}')">{{ env_data.jira_tickets|length }} tickets</span>
@@ -419,8 +429,6 @@ class HTMLReportGenerator:
                                         </div>
                                     {% endfor %}
                                 </div>
-                            {% elif env != 'PROD' %}
-                                <div class="no-commits">No new commits compared to baseline</div>
                             {% endif %}
                         </div>
                     {% endif %}

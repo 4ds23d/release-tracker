@@ -62,6 +62,9 @@ clean:
 run-example:
 	python main.py --config config.yaml --output example_report.html --verbose
 
+run-report:
+	python examples/generate_demo_report.py 
+
 setup-dev: install-dev
 	@echo "Development environment setup complete!"
 	@echo "Run 'make test' to verify everything works."

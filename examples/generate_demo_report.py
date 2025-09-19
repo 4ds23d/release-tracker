@@ -4,10 +4,17 @@ Generate a demo report with JIRA tickets for demonstration purposes.
 This script creates mock data to showcase the JIRA integration feature.
 """
 
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from datetime import datetime
-from .analyzer import ProjectAnalysis, EnvironmentCommits
-from .report_generator import HTMLReportGenerator
-from .config import ProjectConfig
+from release_trucker.analyzer import ProjectAnalysis, EnvironmentCommits
+from release_trucker.report_generator import HTMLReportGenerator
+from release_trucker.config import ProjectConfig
 
 def create_mock_analyses():
     """Create mock project analyses with JIRA tickets."""

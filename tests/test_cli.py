@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
 
-from git_release_notifier.cli import main
+from release_trucker.cli import main
 
 
 class TestCLI:
@@ -24,8 +24,8 @@ class TestCLI:
             yaml.dump(config_data, f)
         return str(config_file)
     
-    @patch('git_release_notifier.cli.ReleaseAnalyzer')
-    @patch('git_release_notifier.cli.HTMLReportGenerator')
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.HTMLReportGenerator')
     def test_main_success(self, mock_report_gen_class, mock_analyzer_class):
         # Setup mocks
         mock_analyzer = Mock()
@@ -74,7 +74,7 @@ class TestCLI:
         assert result.exit_code != 0
         assert 'Configuration file not found' in result.output
     
-    @patch('git_release_notifier.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.ReleaseAnalyzer')
     def test_main_no_successful_analyses(self, mock_analyzer_class):
         mock_analyzer = Mock()
         mock_analyzer_class.return_value = mock_analyzer
@@ -98,8 +98,8 @@ class TestCLI:
         assert result.exit_code != 0
         assert 'No projects could be analyzed successfully' in result.output
     
-    @patch('git_release_notifier.cli.ReleaseAnalyzer')
-    @patch('git_release_notifier.cli.HTMLReportGenerator')
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.HTMLReportGenerator')
     def test_main_with_verbose_logging(self, mock_report_gen_class, mock_analyzer_class):
         mock_analyzer = Mock()
         mock_report_gen = Mock()
@@ -127,8 +127,8 @@ class TestCLI:
         
         assert result.exit_code == 0
     
-    @patch('git_release_notifier.cli.ReleaseAnalyzer')
-    @patch('git_release_notifier.cli.HTMLReportGenerator')
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.HTMLReportGenerator')
     def test_main_with_cleanup(self, mock_report_gen_class, mock_analyzer_class):
         mock_analyzer = Mock()
         mock_report_gen = Mock()
@@ -166,8 +166,8 @@ class TestCLI:
             assert result.exit_code != 0
             assert 'Configuration file not found' in result.output
     
-    @patch('git_release_notifier.cli.ReleaseAnalyzer')
-    @patch('git_release_notifier.cli.HTMLReportGenerator')
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.HTMLReportGenerator')
     def test_main_multiple_projects(self, mock_report_gen_class, mock_analyzer_class):
         mock_analyzer = Mock()
         mock_report_gen = Mock()
@@ -215,8 +215,8 @@ class TestCLI:
         args = mock_report_gen.generate_report.call_args[0]
         assert len(args[0]) == 1  # Only one successful analysis
     
-    @patch('git_release_notifier.cli.ReleaseAnalyzer')
-    @patch('git_release_notifier.cli.HTMLReportGenerator')
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.HTMLReportGenerator')
     def test_main_report_generation_error(self, mock_report_gen_class, mock_analyzer_class):
         mock_analyzer = Mock()
         mock_report_gen = Mock()
@@ -255,7 +255,7 @@ class TestCLI:
         assert '--verbose' in result.output
         assert '--cleanup' in result.output
     
-    @patch('git_release_notifier.cli.setup_logging')
+    @patch('release_trucker.cli.setup_logging')
     def test_logging_setup_verbose(self, mock_setup_logging):
         # Test that verbose flag affects logging setup
         config_data = {'projects': []}
@@ -269,7 +269,7 @@ class TestCLI:
         
         mock_setup_logging.assert_called_once_with(True)
     
-    @patch('git_release_notifier.cli.setup_logging')
+    @patch('release_trucker.cli.setup_logging')
     def test_logging_setup_normal(self, mock_setup_logging):
         config_data = {'projects': []}
         config_file = self.create_test_config(config_data)

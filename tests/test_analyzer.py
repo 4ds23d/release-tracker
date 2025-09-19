@@ -2,9 +2,9 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from git import Repo
 
-from git_release_notifier.analyzer import ReleaseAnalyzer, ProjectAnalysis, EnvironmentCommits
-from git_release_notifier.api_client import VersionInfo
-from git_release_notifier.config import ProjectConfig
+from release_trucker.analyzer import ReleaseAnalyzer, ProjectAnalysis, EnvironmentCommits
+from release_trucker.api_client import VersionInfo
+from release_trucker.config import ProjectConfig
 
 
 class TestReleaseAnalyzer:
@@ -12,8 +12,8 @@ class TestReleaseAnalyzer:
     def setup_method(self):
         self.analyzer = ReleaseAnalyzer()
     
-    @patch('git_release_notifier.analyzer.ActuatorClient')
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.ActuatorClient')
+    @patch('release_trucker.analyzer.GitManager')
     def test_analyze_project_success(self, mock_git_manager_class, mock_api_client_class):
         # Setup mocks
         mock_api_client = Mock()
@@ -93,8 +93,8 @@ class TestReleaseAnalyzer:
         assert pre_env.version == "1.1.0"
         assert len(pre_env.commits) == 1
     
-    @patch('git_release_notifier.analyzer.ActuatorClient')
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.ActuatorClient')
+    @patch('release_trucker.analyzer.GitManager')
     def test_analyze_project_no_version_info(self, mock_git_manager_class, mock_api_client_class):
         mock_api_client = Mock()
         mock_git_manager = Mock()
@@ -116,8 +116,8 @@ class TestReleaseAnalyzer:
         
         assert result is None
     
-    @patch('git_release_notifier.analyzer.ActuatorClient')
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.ActuatorClient')
+    @patch('release_trucker.analyzer.GitManager')
     def test_analyze_project_no_repo(self, mock_git_manager_class, mock_api_client_class):
         mock_api_client = Mock()
         mock_git_manager = Mock()
@@ -140,8 +140,8 @@ class TestReleaseAnalyzer:
         
         assert result is None
     
-    @patch('git_release_notifier.analyzer.ActuatorClient')
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.ActuatorClient')
+    @patch('release_trucker.analyzer.GitManager')
     def test_analyze_project_commit_not_found(self, mock_git_manager_class, mock_api_client_class):
         mock_api_client = Mock()
         mock_git_manager = Mock()

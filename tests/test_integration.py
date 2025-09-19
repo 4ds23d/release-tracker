@@ -5,9 +5,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 import responses
 
-from git_release_notifier.cli import main
-from git_release_notifier.analyzer import ReleaseAnalyzer
-from git_release_notifier.config import load_config
+from release_trucker.cli import main
+from release_trucker.analyzer import ReleaseAnalyzer
+from release_trucker.config import load_config
 
 
 @pytest.mark.integration
@@ -27,7 +27,7 @@ class TestIntegration:
         return str(config_file)
     
     @responses.activate
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.GitManager')
     def test_end_to_end_analysis(self, mock_git_manager_class):
         # Setup test configuration
         config_data = {
@@ -125,7 +125,7 @@ class TestIntegration:
         assert len(result.environments['DEV'].commits) == 1
     
     @responses.activate
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.GitManager')
     def test_partial_environment_failure(self, mock_git_manager_class):
         config_data = {
             'projects': [
@@ -204,7 +204,7 @@ class TestIntegration:
         assert result is None
     
     @responses.activate  
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.GitManager')
     def test_git_repository_failure(self, mock_git_manager_class):
         config_data = {
             'projects': [
@@ -241,7 +241,7 @@ class TestIntegration:
         assert result is None
     
     @responses.activate
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.GitManager')
     def test_multiple_projects_analysis(self, mock_git_manager_class):
         config_data = {
             'projects': [
@@ -325,7 +325,7 @@ class TestIntegration:
 class TestPerformanceIntegration:
     
     @responses.activate
-    @patch('git_release_notifier.analyzer.GitManager')
+    @patch('release_trucker.analyzer.GitManager')
     def test_large_commit_history(self, mock_git_manager_class):
         """Test handling of projects with large commit histories."""
         # Generate large number of mock commits
@@ -355,7 +355,7 @@ class TestPerformanceIntegration:
             status=200
         )
         
-        from git_release_notifier.config import ProjectConfig
+        from release_trucker.config import ProjectConfig
         project_config = ProjectConfig(
             name='large-service',
             repoUrl='https://github.com/test/large.git',

@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from git import Repo, GitCommandError
 
-from git_release_notifier.git_manager import GitManager
+from release_trucker.git_manager import GitManager
 
 
 class TestGitManager:
@@ -17,7 +17,7 @@ class TestGitManager:
     def teardown_method(self):
         shutil.rmtree(self.temp_dir)
     
-    @patch('git_release_notifier.git_manager.Repo')
+    @patch('release_trucker.git_manager.Repo')
     def test_get_or_update_repo_clone_new(self, mock_repo_class):
         mock_repo = Mock()
         mock_repo_class.clone_from.return_value = mock_repo
@@ -33,7 +33,7 @@ class TestGitManager:
             Path(self.temp_dir) / project_name
         )
     
-    @patch('git_release_notifier.git_manager.Repo')
+    @patch('release_trucker.git_manager.Repo')
     def test_get_or_update_repo_update_existing_main(self, mock_repo_class):
         project_name = "test-project"
         repo_path = Path(self.temp_dir) / project_name
@@ -56,7 +56,7 @@ class TestGitManager:
         mock_main_head.checkout.assert_called_once()
         mock_main_head.reset.assert_called_once_with('origin/main', index=True, working_tree=True)
     
-    @patch('git_release_notifier.git_manager.Repo')
+    @patch('release_trucker.git_manager.Repo')
     def test_get_or_update_repo_update_existing_master(self, mock_repo_class):
         project_name = "test-project"
         repo_path = Path(self.temp_dir) / project_name
@@ -83,7 +83,7 @@ class TestGitManager:
         mock_master_head.checkout.assert_called_once()
         mock_master_head.reset.assert_called_once_with('origin/master', index=True, working_tree=True)
     
-    @patch('git_release_notifier.git_manager.Repo')
+    @patch('release_trucker.git_manager.Repo')
     def test_get_or_update_repo_git_error(self, mock_repo_class):
         mock_repo_class.clone_from.side_effect = GitCommandError("git clone", 1)
         
@@ -178,7 +178,7 @@ class TestGitManager:
         # Cleanup
         shutil.rmtree(new_temp_dir)
     
-    @patch('git_release_notifier.git_manager.Repo')
+    @patch('release_trucker.git_manager.Repo')
     def test_get_or_update_repo_unexpected_error(self, mock_repo_class):
         mock_repo_class.clone_from.side_effect = Exception("Unexpected error")
         

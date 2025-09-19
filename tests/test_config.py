@@ -3,7 +3,7 @@ import tempfile
 import yaml
 from pathlib import Path
 
-from git_release_notifier.config import load_config, Config, ProjectConfig
+from release_trucker.config import load_config, Config, ProjectConfig
 
 
 class TestConfig:

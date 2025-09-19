@@ -3,8 +3,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from git_release_notifier.report_generator import HTMLReportGenerator
-from git_release_notifier.analyzer import ProjectAnalysis, EnvironmentCommits
+from release_trucker.report_generator import HTMLReportGenerator
+from release_trucker.analyzer import ProjectAnalysis, EnvironmentCommits
 
 
 class TestHTMLReportGenerator:
@@ -221,7 +221,7 @@ class TestHTMLReportGenerator:
         assert '.commits-count' in rendered
         assert '.jira-count' in rendered
     
-    @patch('git_release_notifier.report_generator.Path')
+    @patch('release_trucker.report_generator.Path')
     def test_generate_report_file_write_error(self, mock_path):
         mock_path_instance = Mock()
         mock_path.return_value = mock_path_instance

@@ -3,7 +3,7 @@ import responses
 import requests
 from unittest.mock import Mock, patch
 
-from git_release_notifier.api_client import ActuatorClient, VersionInfo
+from release_trucker.api_client import ActuatorClient, VersionInfo
 
 
 class TestActuatorClient:

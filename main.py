@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from git_release_notifier.cli import main
+from release_trucker.cli import main
 
 if __name__ == '__main__':
     main()

@@ -5,9 +5,9 @@ This script creates mock data to showcase the JIRA integration feature.
 """
 
 from datetime import datetime
-from git_release_notifier.analyzer import ProjectAnalysis, EnvironmentCommits
-from git_release_notifier.report_generator import HTMLReportGenerator
-from git_release_notifier.config import ProjectConfig
+from .analyzer import ProjectAnalysis, EnvironmentCommits
+from .report_generator import HTMLReportGenerator
+from .config import ProjectConfig
 
 def create_mock_analyses():
     """Create mock project analyses with JIRA tickets."""

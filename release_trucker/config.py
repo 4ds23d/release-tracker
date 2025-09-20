@@ -11,6 +11,7 @@ class ProjectConfig:
     verify_ssl: bool = True
     use_version_fallback: bool = True
     jira_base_url: str = None
+    main_branch: str = "main"
 
 
 @dataclass
@@ -32,7 +33,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
                 env=project_data['env'],
                 verify_ssl=project_data.get('verify_ssl', True),
                 use_version_fallback=project_data.get('use_version_fallback', True),
-                jira_base_url=project_data.get('jira_base_url')
+                jira_base_url=project_data.get('jira_base_url'),
+                main_branch=project_data.get('main_branch', 'main')
             )
             projects.append(project)
     

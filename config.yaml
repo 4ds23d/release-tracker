@@ -1,6 +1,7 @@
 projects:
   - name: "sample-project"
-    repoUrl: "https://github.com/user/sample-project.git"
+    repoUrl: "/private/tmp/bk.test"
+    main_branch: main  # Main branch for release operations (default: main)
     env:
       PROD: "https://prod-api.example.com"
       PRE: "https://pre-api.example.com"
@@ -13,6 +14,7 @@ projects:
   # Example with version fallback disabled (strict git commit requirement)
   # - name: "strict-git-service"
   #   repoUrl: "https://github.com/company/strict-service.git"
+  #   main_branch: main  # Default main branch
   #   env:
   #     PROD: "https://strict-prod.company.com"
   #     DEV: "https://strict-dev.company.com"
@@ -21,6 +23,7 @@ projects:
   # Example with SSL verification disabled (useful for internal environments with self-signed certificates)
   # - name: "internal-service"
   #   repoUrl: "https://github.com/company/internal-service.git"
+  #   main_branch: develop  # Custom main branch for release operations
   #   env:
   #     PROD: "https://internal-prod.company.local"
   #     PRE: "https://internal-pre.company.local"
@@ -32,8 +35,10 @@ projects:
   # Add more projects as needed
   # - name: "another-project"
   #   repoUrl: "https://github.com/user/another-project.git"
+  #   main_branch: main  # Main branch for release operations
   #   env:
   #     PROD: "https://prod-api2.example.com"
   #     PRE: "https://pre-api2.example.com"
   #     TEST: "https://test-api2.example.com"
   #     DEV: "https://dev-api2.example.com"
+  #   jira_base_url: "https://yourcompany.atlassian.net"  # Optional: JIRA integration

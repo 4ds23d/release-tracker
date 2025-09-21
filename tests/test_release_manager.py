@@ -287,6 +287,44 @@ class TestReleaseManager:
         mock_repo.iter_commits.assert_called_once_with("HEAD")
     
     @patch('release_trucker.release_manager.Repo')
+    def test_get_commits_since_last_tag_with_remote_reference(self, mock_repo_class):
+        mock_repo = Mock()
+        mock_repo_class.return_value = mock_repo
+        
+        # Mock tag with commit and valid semantic version name
+        mock_tag = Mock()
+        mock_tag.name = "1.0.0"  # Valid semantic version
+        mock_tag.commit.committed_date = 1000
+        mock_tag.commit.hexsha = "abc123"
+        mock_repo.tags = [mock_tag]
+        
+        # Mock commits since tag on remote branch
+        mock_commits = [Mock() for _ in range(7)]
+        mock_repo.iter_commits.return_value = mock_commits
+        
+        count = self.release_manager.get_commits_since_last_tag(Path("/fake/path"), "origin/main")
+        
+        assert count == 7
+        mock_repo.iter_commits.assert_called_once_with("abc123..origin/main")
+    
+    @patch('release_trucker.release_manager.Repo')
+    def test_get_commits_since_last_tag_no_tags_with_remote_reference(self, mock_repo_class):
+        mock_repo = Mock()
+        mock_repo_class.return_value = mock_repo
+        
+        # No tags
+        mock_repo.tags = []
+        
+        # Mock all commits on remote branch
+        mock_commits = [Mock() for _ in range(15)]
+        mock_repo.iter_commits.return_value = mock_commits
+        
+        count = self.release_manager.get_commits_since_last_tag(Path("/fake/path"), "origin/develop")
+        
+        assert count == 15
+        mock_repo.iter_commits.assert_called_once_with("origin/develop")
+    
+    @patch('release_trucker.release_manager.Repo')
     def test_checkout_branch_existing(self, mock_repo_class):
         mock_repo = Mock()
         mock_repo_class.return_value = mock_repo
@@ -414,3 +452,43 @@ class TestReleaseManager:
         assert str(release_info.new_version) == "3.0.0"  # highest_major + 1
         assert release_info.commits_count == 5
         assert release_info.changes_since_last_tag is True
+        
+        # Verify that change detection used the remote main branch
+        mock_commits.assert_called_with(Path("/fake/repo"), "origin/main")
+    
+    @patch.object(ReleaseManager, 'validate_jira_ticket')
+    @patch.object(ReleaseManager, 'checkout_branch')
+    @patch.object(ReleaseManager, 'branch_exists')
+    @patch.object(ReleaseManager, 'get_highest_major_version')
+    @patch.object(ReleaseManager, 'get_commits_since_last_tag')
+    def test_prepare_release_with_custom_main_branch(self, mock_commits, mock_highest_major, 
+                                                    mock_branch_exists, mock_checkout, mock_validate):
+        # Setup mocks
+        mock_validate.return_value = True
+        mock_branch_exists.return_value = False
+        mock_checkout.return_value = True
+        mock_highest_major.return_value = 1
+        mock_commits.return_value = 3  # Remote changes detected
+        
+        # Mock git manager
+        mock_repo = Mock()
+        mock_repo.working_dir = "/fake/repo"
+        self.release_manager.git_manager.get_or_update_repo = Mock(return_value=mock_repo)
+        
+        # Create project config with custom main branch
+        project = ProjectConfig(
+            name="test-project",
+            repoUrl="https://github.com/test/repo.git",
+            env={"PROD": "https://prod.example.com"},
+            main_branch="develop"  # Custom main branch
+        )
+        
+        # Test prepare_release
+        release_info = self.release_manager.prepare_release(project, "AUTH-456")
+        
+        assert release_info is not None
+        assert release_info.commits_count == 3
+        assert release_info.changes_since_last_tag is True
+        
+        # Verify that change detection used the custom remote main branch
+        mock_commits.assert_called_with(Path("/fake/repo"), "origin/develop")

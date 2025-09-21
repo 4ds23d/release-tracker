@@ -143,8 +143,14 @@ class ReleaseManager:
             self.logger.debug(f"Failed to check branch existence for {branch_name}: {e}")
             return False
     
-    def get_commits_since_last_tag(self, repo_path: Path) -> int:
-        """Get number of commits since last semantic versioning tag."""
+    def get_commits_since_last_tag(self, repo_path: Path, reference: str = "HEAD") -> int:
+        """Get number of commits since last semantic versioning tag.
+        
+        Args:
+            repo_path: Path to the repository
+            reference: Git reference to count commits from (default: HEAD)
+                      Use 'origin/main' or 'origin/master' to count from remote branch
+        """
         try:
             repo = Repo(repo_path)
             
@@ -166,11 +172,11 @@ class ReleaseManager:
             
             if latest_tag_commit:
                 # Count commits since that semantic versioning tag
-                commits = list(repo.iter_commits(f'{latest_tag_commit.hexsha}..HEAD'))
+                commits = list(repo.iter_commits(f'{latest_tag_commit.hexsha}..{reference}'))
                 return len(commits)
             else:
                 # No semantic versioning tags exist, count all commits
-                commits = list(repo.iter_commits('HEAD'))
+                commits = list(repo.iter_commits(reference))
                 return len(commits)
                 
         except (GitCommandError, Exception) as e:
@@ -261,8 +267,9 @@ class ReleaseManager:
             highest_major = self.get_highest_major_version(repo_path)
             new_version = VersionInfo(highest_major + 1 if highest_major > 0 else 1, 0, 0)
         
-        # Check if there are changes since last tag
-        commits_count = self.get_commits_since_last_tag(repo_path)
+        # Check if there are changes since last tag (use remote main branch for accurate detection)
+        remote_main_ref = f"origin/{project.main_branch}"
+        commits_count = self.get_commits_since_last_tag(repo_path, remote_main_ref)
         changes_since_last_tag = commits_count > 0
         
         if not changes_since_last_tag:

@@ -1,9 +1,9 @@
 import logging
 import re
-import subprocess
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from pathlib import Path
+from git import Repo, GitCommandError
 
 from .config import ProjectConfig
 from .git_manager import GitManager
@@ -17,6 +17,10 @@ class VersionInfo:
     
     def __str__(self) -> str:
         return f"{self.major}.{self.minor}.{self.patch}"
+    
+    def __format__(self, format_spec: str) -> str:
+        """Support for f-string formatting."""
+        return str(self).__format__(format_spec)
     
     def bump_major(self) -> 'VersionInfo':
         return VersionInfo(self.major + 1, 0, 0)
@@ -54,16 +58,11 @@ class ReleaseManager:
     def get_all_tags(self, repo_path: Path) -> List[str]:
         """Get all tags from repository."""
         try:
-            result = subprocess.run(
-                ['git', 'tag', '-l'],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            tags = [tag.strip() for tag in result.stdout.split('\n') if tag.strip()]
+            repo = Repo(repo_path)
+            tags = [tag.name for tag in repo.tags]
             return tags
-        except subprocess.CalledProcessError:
+        except (GitCommandError, Exception) as e:
+            self.logger.debug(f"Failed to get tags from {repo_path}: {e}")
             return []
     
     def parse_version(self, version_str: str) -> Optional[VersionInfo]:
@@ -79,133 +78,143 @@ class ReleaseManager:
         return None
     
     def get_latest_version(self, repo_path: Path) -> Optional[VersionInfo]:
-        """Get the latest version from repository tags."""
-        tags = self.get_all_tags(repo_path)
-        versions = []
-        
-        for tag in tags:
-            version = self.parse_version(tag)
-            if version:
-                versions.append(version)
-        
-        if not versions:
+        """Get the latest version from repository tags that match semantic versioning pattern."""
+        try:
+            repo = Repo(repo_path)
+            versions = []
+            
+            # Filter tags to only include those matching semantic versioning pattern
+            for tag in repo.tags:
+                version = self.parse_version(tag.name)
+                if version:  # Only include tags that match major.minor.patch pattern
+                    versions.append(version)
+            
+            if not versions:
+                return None
+            
+            # Sort by major, minor, patch and return the latest
+            versions.sort(key=lambda v: (v.major, v.minor, v.patch), reverse=True)
+            return versions[0]
+            
+        except (GitCommandError, Exception) as e:
+            self.logger.debug(f"Failed to get latest version from {repo_path}: {e}")
             return None
-        
-        # Sort by major, minor, patch and return the latest
-        versions.sort(key=lambda v: (v.major, v.minor, v.patch), reverse=True)
-        return versions[0]
     
     def get_highest_major_version(self, repo_path: Path) -> int:
-        """Get the highest major version from repository tags."""
-        tags = self.get_all_tags(repo_path)
-        major_versions = []
-        
-        for tag in tags:
-            version = self.parse_version(tag)
-            if version:
-                major_versions.append(version.major)
-        
-        return max(major_versions) if major_versions else 0
+        """Get the highest major version from repository tags that match semantic versioning pattern."""
+        try:
+            repo = Repo(repo_path)
+            major_versions = []
+            
+            # Filter tags to only include those matching semantic versioning pattern
+            for tag in repo.tags:
+                version = self.parse_version(tag.name)
+                if version:  # Only include tags that match major.minor.patch pattern
+                    major_versions.append(version.major)
+            
+            return max(major_versions) if major_versions else 0
+            
+        except (GitCommandError, Exception) as e:
+            self.logger.debug(f"Failed to get highest major version from {repo_path}: {e}")
+            return 0
     
     def branch_exists(self, repo_path: Path, branch_name: str) -> bool:
         """Check if branch exists locally or remotely."""
         try:
-            # Check local branches
-            result = subprocess.run(
-                ['git', 'branch', '--list', branch_name],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            repo = Repo(repo_path)
             
-            if result.stdout.strip():
-                return True
+            # Check local branches
+            for head in repo.heads:
+                if head.name == branch_name:
+                    return True
             
             # Check remote branches
-            result = subprocess.run(
-                ['git', 'branch', '-r', '--list', f'origin/{branch_name}'],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            try:
+                for remote_ref in repo.remotes.origin.refs:
+                    if remote_ref.name == f'origin/{branch_name}':
+                        return True
+            except (AttributeError, GitCommandError):
+                # No origin remote or error accessing remote refs
+                pass
             
-            return bool(result.stdout.strip())
+            return False
             
-        except subprocess.CalledProcessError:
+        except (GitCommandError, Exception) as e:
+            self.logger.debug(f"Failed to check branch existence for {branch_name}: {e}")
             return False
     
     def get_commits_since_last_tag(self, repo_path: Path) -> int:
-        """Get number of commits since last tag."""
+        """Get number of commits since last semantic versioning tag."""
         try:
-            # Get the latest tag
-            result = subprocess.run(
-                ['git', 'describe', '--tags', '--abbrev=0'],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            last_tag = result.stdout.strip()
+            repo = Repo(repo_path)
             
-            # Count commits since that tag
-            result = subprocess.run(
-                ['git', 'rev-list', f'{last_tag}..HEAD', '--count'],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            return int(result.stdout.strip())
+            # Get the latest semantic versioning tag by commit date
+            latest_semantic_tag = None
+            latest_tag_commit = None
             
-        except subprocess.CalledProcessError:
-            # No tags exist, count all commits
-            try:
-                result = subprocess.run(
-                    ['git', 'rev-list', 'HEAD', '--count'],
-                    cwd=repo_path,
-                    capture_output=True,
-                    text=True,
-                    check=True
-                )
-                return int(result.stdout.strip())
-            except subprocess.CalledProcessError:
-                return 0
+            if repo.tags:
+                # Filter to only semantic versioning tags and sort by commit date
+                semantic_tags = []
+                for tag in repo.tags:
+                    if self.parse_version(tag.name):  # Only include tags that match major.minor.patch pattern
+                        semantic_tags.append(tag)
+                
+                if semantic_tags:
+                    sorted_tags = sorted(semantic_tags, key=lambda t: t.commit.committed_date, reverse=True)
+                    latest_semantic_tag = sorted_tags[0]
+                    latest_tag_commit = latest_semantic_tag.commit
+            
+            if latest_tag_commit:
+                # Count commits since that semantic versioning tag
+                commits = list(repo.iter_commits(f'{latest_tag_commit.hexsha}..HEAD'))
+                return len(commits)
+            else:
+                # No semantic versioning tags exist, count all commits
+                commits = list(repo.iter_commits('HEAD'))
+                return len(commits)
+                
+        except (GitCommandError, Exception) as e:
+            self.logger.debug(f"Failed to count commits since last tag: {e}")
+            return 0
     
     def checkout_branch(self, repo_path: Path, branch_name: str, create: bool = False) -> bool:
         """Checkout to branch, optionally creating it."""
         try:
+            repo = Repo(repo_path)
+            
             if create:
-                subprocess.run(
-                    ['git', 'checkout', '-b', branch_name],
-                    cwd=repo_path,
-                    check=True,
-                    capture_output=True
-                )
+                # Create new branch from current HEAD
+                new_branch = repo.create_head(branch_name)
+                new_branch.checkout()
             else:
-                subprocess.run(
-                    ['git', 'checkout', branch_name],
-                    cwd=repo_path,
-                    check=True,
-                    capture_output=True
-                )
+                # Checkout existing branch
+                # First check if it's a local branch
+                if branch_name in [head.name for head in repo.heads]:
+                    repo.heads[branch_name].checkout()
+                else:
+                    # Try to checkout from remote
+                    try:
+                        remote_branch = repo.remotes.origin.refs[branch_name]
+                        local_branch = repo.create_head(branch_name, remote_branch)
+                        local_branch.set_tracking_branch(remote_branch)
+                        local_branch.checkout()
+                    except (AttributeError, IndexError):
+                        self.logger.error(f"Branch {branch_name} not found locally or remotely")
+                        return False
+            
             return True
-        except subprocess.CalledProcessError as e:
+        except (GitCommandError, Exception) as e:
             self.logger.error(f"Failed to checkout branch {branch_name}: {e}")
             return False
     
     def create_annotated_tag(self, repo_path: Path, tag_name: str, message: str) -> bool:
         """Create an annotated tag."""
         try:
-            subprocess.run(
-                ['git', 'tag', '-a', tag_name, '-m', message],
-                cwd=repo_path,
-                check=True,
-                capture_output=True
-            )
+            repo = Repo(repo_path)
+            # Create annotated tag at current HEAD
+            repo.create_tag(tag_name, message=message)
             return True
-        except subprocess.CalledProcessError as e:
+        except (GitCommandError, Exception) as e:
             self.logger.error(f"Failed to create tag {tag_name}: {e}")
             return False
     
@@ -273,27 +282,32 @@ class ReleaseManager:
     def push_branch(self, repo_path: Path, branch_name: str) -> bool:
         """Push branch to remote repository."""
         try:
-            subprocess.run(
-                ['git', 'push', '-u', 'origin', branch_name],
-                cwd=repo_path,
-                check=True,
-                capture_output=True
-            )
+            repo = Repo(repo_path)
+            origin = repo.remotes.origin
+            
+            # Push branch and set upstream tracking
+            origin.push(refspec=f'{branch_name}:{branch_name}')
+            
+            # Set up tracking
+            local_branch = repo.heads[branch_name]
+            remote_branch = origin.refs[branch_name]
+            local_branch.set_tracking_branch(remote_branch)
+            
             return True
-        except subprocess.CalledProcessError as e:
+        except (GitCommandError, Exception) as e:
             self.logger.error(f"Failed to push branch {branch_name}: {e}")
             return False
     
     def push_tag(self, repo_path: Path, tag_name: str) -> bool:
         """Push tag to remote repository."""
         try:
-            subprocess.run(
-                ['git', 'push', 'origin', tag_name],
-                cwd=repo_path,
-                check=True,
-                capture_output=True
-            )
+            repo = Repo(repo_path)
+            origin = repo.remotes.origin
+            
+            # Push the specific tag using refspec
+            origin.push(refspec=f'refs/tags/{tag_name}:refs/tags/{tag_name}')
+            
             return True
-        except subprocess.CalledProcessError as e:
+        except (GitCommandError, Exception) as e:
             self.logger.error(f"Failed to push tag {tag_name}: {e}")
             return False

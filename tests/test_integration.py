@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 import responses
 
-from release_trucker.cli import main
+from release_trucker.cli import cli
 from release_trucker.analyzer import ReleaseAnalyzer
 from release_trucker.config import load_config
 

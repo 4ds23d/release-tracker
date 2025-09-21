@@ -1,0 +1,32 @@
+projects:
+  - name: frontend-app
+    repoUrl: https://github.com/company/frontend-app.git
+    main_branch: main
+    env:
+      DEV: https://dev-frontend.company.com/actuator/info
+      STAGING: https://staging-frontend.company.com/actuator/info
+      PROD: https://prod-frontend.company.com/actuator/info
+    verify_ssl: true
+    use_version_fallback: true
+    jira_base_url: https://company.atlassian.net
+
+  - name: backend-api
+    repoUrl: https://github.com/company/backend-api.git
+    main_branch: develop  # Different main branch
+    env:
+      DEV: https://dev-api.company.com/actuator/info
+      STAGING: https://staging-api.company.com/actuator/info
+      PROD: https://prod-api.company.com/actuator/info
+    verify_ssl: true
+    use_version_fallback: true
+    jira_base_url: https://company.atlassian.net
+
+  - name: mobile-service
+    repoUrl: https://github.com/company/mobile-service.git
+    main_branch: main
+    env:
+      DEV: https://dev-mobile.company.com/actuator/info
+      PROD: https://prod-mobile.company.com/actuator/info
+    verify_ssl: false  # Self-signed certificates in dev
+    use_version_fallback: true
+    jira_base_url: https://company.atlassian.net

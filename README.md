@@ -59,8 +59,17 @@ projects:
 
 #### Deployment Analysis
 ```bash
-# Analyze deployments across environments
+# Generate HTML report only
 python -m release_trucker.cli analyze --config config.yaml --output report.html
+
+# Generate both HTML and CSV reports
+python -m release_trucker.cli analyze --config config.yaml --output report.html --csv-output tickets.csv
+
+# Generate only CSV report (skip HTML)
+python -m release_trucker.cli analyze --config config.yaml --csv-output tickets.csv --csv-only
+
+# Generate detailed CSV format
+python -m release_trucker.cli analyze --config config.yaml --csv-output detailed.csv --csv-format detailed
 ```
 
 #### Release Management
@@ -80,11 +89,14 @@ python -m release_trucker.cli release --config config.yaml BWD-123
 python -m release_trucker.cli analyze [OPTIONS]
 
 Options:
-  -c, --config PATH    Configuration file path [default: config.yaml]
-  -o, --output PATH    Output HTML file path [default: release_report.html]
-  -v, --verbose        Enable verbose logging
-  --cleanup            Clean up cloned repositories after analysis
-  --help               Show this message and exit
+  -c, --config PATH        Configuration file path [default: config.yaml]
+  -o, --output PATH        Output HTML file path [default: release_report.html]
+  --csv-output PATH        Output CSV file path (optional)
+  --csv-format [summary|detailed]  CSV format type [default: summary]
+  --csv-only               Generate only CSV report (skip HTML)
+  -v, --verbose            Enable verbose logging
+  --cleanup                Clean up cloned repositories after analysis
+  --help                   Show this message and exit
 ```
 
 ### Release Management
@@ -309,6 +321,54 @@ backend-api          release/BWD-123           2.1.0      8
 
 🎉 Release process completed for BWD-123!
 ```
+
+## 📊 CSV Reports
+
+The tool can generate CSV reports that provide a comprehensive view of JIRA tickets and their deployment status across environments.
+
+### CSV Report Formats
+
+#### Summary Format (Default)
+Shows each JIRA ticket and which environments it's deployed to:
+
+```csv
+JIRA_Ticket,Project,DEV,TEST,PRE,PROD,Total_Environments,First_Seen_Version,Latest_Version,First_Commit_Date,Latest_Commit_Date
+AUTH-123,backend-api,Yes,Yes,Yes,Yes,4,1.5.0,1.8.2,2024-01-10,2024-01-15
+BWD-789,frontend-app,Yes,Yes,Yes,No,3,2.0.0,2.2.1,2024-01-08,2024-01-16
+FEAT-555,user-service,Yes,Yes,Yes,Yes,4,3.1.0,3.4.0,2024-01-05,2024-01-18
+```
+
+#### Detailed Format
+Shows each occurrence of a JIRA ticket in each environment:
+
+```csv
+JIRA_Ticket,Project,Environment,Version,Commit_ID,Commit_Date,Commit_Message
+AUTH-123,backend-api,DEV,1.8.2,abc12345,2024-01-15,"AUTH-123: Implement OAuth2 authentication flow"
+AUTH-123,backend-api,TEST,1.8.1,def67890,2024-01-14,"AUTH-123: Fix authentication token validation"
+AUTH-123,backend-api,PRE,1.7.5,ghi11111,2024-01-12,"AUTH-123: Add JWT token support"
+```
+
+### CSV Usage Examples
+
+```bash
+# Generate summary CSV with HTML report
+python -m release_trucker.cli analyze --config config.yaml --csv-output jira-summary.csv
+
+# Generate detailed CSV only (no HTML)
+python -m release_trucker.cli analyze --config config.yaml --csv-output jira-detailed.csv --csv-format detailed --csv-only
+
+# Generate both formats
+python -m release_trucker.cli analyze --config config.yaml --output report.html --csv-output summary.csv
+python -m release_trucker.cli analyze --config config.yaml --csv-output detailed.csv --csv-format detailed --csv-only
+```
+
+### CSV Report Benefits
+
+- **📈 Tracking**: Monitor JIRA ticket progression through environments
+- **📊 Analysis**: Import into spreadsheet tools for further analysis
+- **🔍 Auditing**: Verify which tickets are deployed where
+- **📋 Reporting**: Share deployment status with stakeholders
+- **🚀 Planning**: Identify tickets ready for promotion to next environment
 
 ## 📋 Requirements
 

@@ -60,7 +60,7 @@ class TestCLI:
         
         # Verify success
         assert result.exit_code == 0
-        assert 'Report generated successfully' in result.output
+        assert 'Reports generated successfully' in result.output
         assert 'Analyzed 1 projects' in result.output
         
         # Verify mocks were called
@@ -462,3 +462,174 @@ class TestCLI:
         assert result.exit_code == 0
         assert '✅ Branch pushed successfully' in result.output
         assert '❌ Failed to create tag' in result.output
+
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.HTMLReportGenerator')
+    @patch('release_trucker.cli.CSVReportGenerator')
+    def test_analyze_with_csv_output(self, mock_csv_gen_class, mock_html_gen_class, mock_analyzer_class):
+        """Test analyze command with CSV output."""
+        # Setup mocks
+        mock_analyzer = Mock()
+        mock_html_gen = Mock()
+        mock_csv_gen = Mock()
+        mock_analyzer_class.return_value = mock_analyzer
+        mock_html_gen_class.return_value = mock_html_gen
+        mock_csv_gen_class.return_value = mock_csv_gen
+        
+        # Create mock analysis result
+        mock_analysis = Mock()
+        mock_analysis.project_name = 'test-project'
+        mock_analyzer.analyze_project.return_value = mock_analysis
+        
+        # Mock CSV statistics
+        mock_csv_gen.get_ticket_statistics.return_value = {
+            'total_tickets': 5,
+            'multi_environment_tickets': 2,
+            'single_environment_tickets': 3,
+            'tickets_by_environment': {'DEV': 3, 'PROD': 2}
+        }
+        
+        # Create test config
+        config_data = {
+            'projects': [
+                {
+                    'name': 'test-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {'PROD': 'https://prod.example.com'}
+                }
+            ]
+        }
+        config_file = self.create_test_config(config_data)
+        html_file = str(self.temp_dir / "test_report.html")
+        csv_file = str(self.temp_dir / "test_tickets.csv")
+
+        # Run CLI with CSV output
+        result = self.runner.invoke(cli, [
+            'analyze',
+            '--config', config_file,
+            '--output', html_file,
+            '--csv-output', csv_file
+        ])
+
+        # Verify success
+        assert result.exit_code == 0
+        assert 'Reports generated successfully' in result.output
+        assert 'HTML:' in result.output
+        assert 'CSV (summary):' in result.output
+        assert 'Total tickets: 5' in result.output
+        assert 'Multi-environment tickets: 2' in result.output
+
+        # Verify both generators were called
+        mock_html_gen.generate_report.assert_called_once()
+        mock_csv_gen.generate_csv_report.assert_called_once()
+        mock_csv_gen.get_ticket_statistics.assert_called_once()
+
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.CSVReportGenerator')
+    def test_analyze_csv_only(self, mock_csv_gen_class, mock_analyzer_class):
+        """Test analyze command with CSV only (no HTML)."""
+        # Setup mocks
+        mock_analyzer = Mock()
+        mock_csv_gen = Mock()
+        mock_analyzer_class.return_value = mock_analyzer
+        mock_csv_gen_class.return_value = mock_csv_gen
+        
+        # Create mock analysis result
+        mock_analysis = Mock()
+        mock_analysis.project_name = 'test-project'
+        mock_analyzer.analyze_project.return_value = mock_analysis
+        
+        # Mock CSV statistics
+        mock_csv_gen.get_ticket_statistics.return_value = {
+            'total_tickets': 3,
+            'multi_environment_tickets': 1,
+            'single_environment_tickets': 2,
+            'tickets_by_environment': {'DEV': 2, 'TEST': 1}
+        }
+        
+        # Create test config
+        config_data = {
+            'projects': [
+                {
+                    'name': 'test-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {'DEV': 'https://dev.example.com', 'TEST': 'https://test.example.com'}
+                }
+            ]
+        }
+        config_file = self.create_test_config(config_data)
+        csv_file = str(self.temp_dir / "test_tickets.csv")
+
+        # Run CLI with CSV only
+        result = self.runner.invoke(cli, [
+            'analyze',
+            '--config', config_file,
+            '--csv-output', csv_file,
+            '--csv-only'
+        ])
+
+        # Verify success
+        assert result.exit_code == 0
+        assert 'Reports generated successfully' in result.output
+        assert 'CSV (summary):' in result.output
+        assert 'HTML:' not in result.output
+        assert 'Total tickets: 3' in result.output
+
+        # Verify only CSV generator was called
+        mock_csv_gen.generate_csv_report.assert_called_once()
+        mock_csv_gen.get_ticket_statistics.assert_called_once()
+
+    @patch('release_trucker.cli.ReleaseAnalyzer')
+    @patch('release_trucker.cli.CSVReportGenerator')
+    def test_analyze_csv_detailed_format(self, mock_csv_gen_class, mock_analyzer_class):
+        """Test analyze command with detailed CSV format."""
+        # Setup mocks
+        mock_analyzer = Mock()
+        mock_csv_gen = Mock()
+        mock_analyzer_class.return_value = mock_analyzer
+        mock_csv_gen_class.return_value = mock_csv_gen
+        
+        # Create mock analysis result
+        mock_analysis = Mock()
+        mock_analysis.project_name = 'test-project'
+        mock_analyzer.analyze_project.return_value = mock_analysis
+        
+        # Mock CSV statistics
+        mock_csv_gen.get_ticket_statistics.return_value = {
+            'total_tickets': 2,
+            'multi_environment_tickets': 1,
+            'single_environment_tickets': 1,
+            'tickets_by_environment': {'DEV': 2}
+        }
+        
+        # Create test config
+        config_data = {
+            'projects': [
+                {
+                    'name': 'test-project',
+                    'repoUrl': 'https://github.com/test/repo.git',
+                    'env': {'DEV': 'https://dev.example.com'}
+                }
+            ]
+        }
+        config_file = self.create_test_config(config_data)
+        csv_file = str(self.temp_dir / "detailed_tickets.csv")
+
+        # Run CLI with detailed CSV format
+        result = self.runner.invoke(cli, [
+            'analyze',
+            '--config', config_file,
+            '--csv-output', csv_file,
+            '--csv-format', 'detailed',
+            '--csv-only'
+        ])
+
+        # Verify success
+        assert result.exit_code == 0
+        assert 'Reports generated successfully' in result.output
+        assert 'CSV (detailed):' in result.output
+
+        # Verify CSV generator was called with detailed format
+        mock_csv_gen.generate_csv_report.assert_called_once_with(
+            [mock_analysis], csv_file, 'detailed'
+        )

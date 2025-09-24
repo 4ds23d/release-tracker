@@ -7,6 +7,7 @@ from typing import List
 from .config import load_config
 from .analyzer import ReleaseAnalyzer, ProjectAnalysis
 from .report_generator import HTMLReportGenerator
+from .csv_report_generator import CSVReportGenerator
 from .release_manager import ReleaseManager
 
 
@@ -39,11 +40,20 @@ def cli(ctx, verbose: bool):
 @click.option('--output', '-o',
               default='release_report.html',
               help='Output HTML file path')
+@click.option('--csv-output',
+              help='Output CSV file path (optional)')
+@click.option('--csv-format',
+              type=click.Choice(['summary', 'detailed']),
+              default='summary',
+              help='CSV format type (summary or detailed)')
+@click.option('--csv-only',
+              is_flag=True,
+              help='Generate only CSV report (skip HTML)')
 @click.option('--cleanup',
               is_flag=True,
               help='Clean up cloned repositories after analysis')
 @click.pass_context
-def analyze(ctx, config: str, output: str, cleanup: bool):
+def analyze(ctx, config: str, output: str, csv_output: str, csv_format: str, csv_only: bool, cleanup: bool):
     """
     Analyze deployment differences across environments.
     
@@ -79,17 +89,49 @@ def analyze(ctx, config: str, output: str, cleanup: bool):
         if not analyses:
             raise click.ClickException("No projects could be analyzed successfully")
         
-        # Generate report
-        logger.info("Generating HTML report...")
-        report_generator = HTMLReportGenerator()
-        report_generator.generate_report(analyses, output, cfg.projects)
+        # Generate reports based on options
+        reports_generated = []
+        
+        # Generate HTML report (unless csv-only is specified)
+        if not csv_only:
+            logger.info("Generating HTML report...")
+            report_generator = HTMLReportGenerator()
+            report_generator.generate_report(analyses, output, cfg.projects)
+            reports_generated.append(f"HTML: {Path(output).absolute()}")
+        
+        # Generate CSV report if requested
+        if csv_output or csv_only:
+            # Determine CSV output filename
+            if csv_output:
+                csv_filename = csv_output
+            else:
+                # Generate default CSV filename based on HTML output
+                html_path = Path(output)
+                csv_filename = str(html_path.with_suffix('.csv'))
+            
+            logger.info(f"Generating {csv_format} CSV report...")
+            csv_generator = CSVReportGenerator()
+            csv_generator.generate_csv_report(analyses, csv_filename, csv_format)
+            reports_generated.append(f"CSV ({csv_format}): {Path(csv_filename).absolute()}")
+            
+            # Display JIRA ticket statistics
+            stats = csv_generator.get_ticket_statistics(analyses)
+            click.echo(f"📊 JIRA Ticket Statistics:")
+            click.echo(f"   Total tickets: {stats['total_tickets']}")
+            click.echo(f"   Multi-environment tickets: {stats['multi_environment_tickets']}")
+            click.echo(f"   Single-environment tickets: {stats['single_environment_tickets']}")
+            if stats['tickets_by_environment']:
+                click.echo(f"   Tickets by environment: {dict(stats['tickets_by_environment'])}")
         
         # Cleanup if requested
         if cleanup:
             logger.info("Cleaning up cloned repositories...")
             analyzer.git_manager.cleanup_repos()
         
-        click.echo(f"✅ Report generated successfully: {Path(output).absolute()}")
+        # Summary output
+        click.echo(f"✅ Reports generated successfully:")
+        for report in reports_generated:
+            click.echo(f"   {report}")
         click.echo(f"📊 Analyzed {len(analyses)} projects")
         
     except Exception as e:

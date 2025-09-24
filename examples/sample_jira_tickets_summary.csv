@@ -1,0 +1,10 @@
+JIRA_Ticket,Project,DEV,TEST,PRE,PROD,Total_Environments,First_Seen_Version,Latest_Version,First_Commit_Date,Latest_Commit_Date
+AUTH-123,backend-api,Yes,Yes,Yes,Yes,4,1.5.0,1.8.2,2024-01-10,2024-01-15
+AUTH-456,backend-api,Yes,Yes,No,No,2,1.7.0,1.8.1,2024-01-12,2024-01-14
+BWD-789,frontend-app,Yes,Yes,Yes,No,3,2.0.0,2.2.1,2024-01-08,2024-01-16
+BWD-101,frontend-app,Yes,No,No,No,1,2.3.0,2.3.0,2024-01-17,2024-01-17
+FEAT-555,user-service,Yes,Yes,Yes,Yes,4,3.1.0,3.4.0,2024-01-05,2024-01-18
+FEAT-666,user-service,Yes,Yes,No,No,2,3.3.0,3.4.0,2024-01-15,2024-01-18
+HOTFIX-999,payment-service,No,No,Yes,Yes,2,4.1.1,4.1.1,2024-01-20,2024-01-20
+PROJ-111,notification-service,Yes,Yes,Yes,No,3,1.2.0,1.4.5,2024-01-09,2024-01-19
+PROJ-222,notification-service,Yes,No,No,No,1,1.5.0,1.5.0,2024-01-19,2024-01-19

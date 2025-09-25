@@ -257,3 +257,170 @@ class TestGitManager:
         result = self.git_manager.tag_exists(mock_repo, "v1.0.0")
         
         assert result is False
+
+    def test_get_commits_between_with_merge_expansion_disabled(self):
+        """Test get_commits_between with merge expansion disabled"""
+        mock_repo = Mock()
+        mock_commit = Mock()
+        mock_commit.hexsha = "abc123def456"
+        mock_commit.message = "Merge pull request #123"
+        mock_commit.summary = "Merge pull request #123"
+        mock_commit.author = "GitHub"
+        mock_commit.committed_datetime.isoformat.return_value = "2023-01-01T12:00:00"
+        
+        mock_repo.iter_commits.return_value = [mock_commit]
+        
+        result = self.git_manager.get_commits_between(mock_repo, "from_commit", "to_commit", expand_merges=False)
+        
+        assert len(result) == 1
+        assert result[0]['id'] == "abc123def456"
+        assert result[0]['message'] == "Merge pull request #123"
+        # Should not call _expand_merge_commits
+        assert 'is_merged_commit' not in result[0]
+
+    def test_expand_merge_commits_simple_merge(self):
+        """Test expansion of a simple merge commit"""
+        mock_repo = Mock()
+        
+        # Mock merge commit
+        merge_commit = Mock()
+        merge_commit.hexsha = "merge123"
+        merge_commit.summary = "Merge pull request #123"
+        merge_commit.parents = [Mock(), Mock()]  # Two parents = merge commit
+        
+        # Mock feature commits
+        feature_commit1 = Mock()
+        feature_commit1.hexsha = "feature1"
+        feature_commit1.message = "Add new feature"
+        feature_commit1.summary = "Add new feature"
+        feature_commit1.author = "Developer"
+        feature_commit1.committed_datetime.isoformat.return_value = "2023-01-01T10:00:00"
+        
+        feature_commit2 = Mock()
+        feature_commit2.hexsha = "feature2"
+        feature_commit2.message = "Fix feature bug"
+        feature_commit2.summary = "Fix feature bug"
+        feature_commit2.author = "Developer"
+        feature_commit2.committed_datetime.isoformat.return_value = "2023-01-01T11:00:00"
+        
+        # Setup mocks
+        mock_repo.commit.return_value = merge_commit
+        mock_repo.iter_commits.return_value = [feature_commit1, feature_commit2]
+        
+        commits_input = [{
+            'id': 'merge123',
+            'short_id': 'merge12',
+            'message': 'Merge pull request #123',
+            'author': 'GitHub',
+            'date': '2023-01-01T12:00:00',
+            'summary': 'Merge pull request #123'
+        }]
+        
+        result = self.git_manager._expand_merge_commits(mock_repo, commits_input, "baseline123")
+        
+        # Should have merge commit + 2 feature commits
+        assert len(result) >= 3
+        
+        # Check that feature commits are marked as merged commits
+        merged_commits = [c for c in result if c.get('is_merged_commit')]
+        assert len(merged_commits) >= 2
+
+    def test_expand_merge_commits_no_merge_commits(self):
+        """Test expansion when there are no merge commits"""
+        mock_repo = Mock()
+        
+        # Mock regular commit (single parent)
+        regular_commit = Mock()
+        regular_commit.hexsha = "regular123"
+        regular_commit.parents = [Mock()]  # Single parent = regular commit
+        
+        mock_repo.commit.return_value = regular_commit
+        
+        commits_input = [{
+            'id': 'regular123',
+            'short_id': 'regular1',
+            'message': 'Regular commit',
+            'author': 'Developer',
+            'date': '2023-01-01T12:00:00',
+            'summary': 'Regular commit'
+        }]
+        
+        result = self.git_manager._expand_merge_commits(mock_repo, commits_input, "baseline123")
+        
+        # Should only have the original commit
+        assert len(result) == 1
+        assert result[0]['id'] == 'regular123'
+        assert 'is_merged_commit' not in result[0]
+
+    def test_expand_merge_commits_git_error(self):
+        """Test expansion when git operations fail"""
+        mock_repo = Mock()
+        
+        # Mock merge commit
+        merge_commit = Mock()
+        merge_commit.hexsha = "merge123"
+        merge_commit.parents = [Mock(), Mock()]  # Two parents = merge commit
+        
+        # Setup to fail on iter_commits
+        mock_repo.commit.return_value = merge_commit
+        mock_repo.iter_commits.side_effect = GitCommandError("git log failed", 1)
+        
+        commits_input = [{
+            'id': 'merge123',
+            'short_id': 'merge12',
+            'message': 'Merge pull request #123',
+            'author': 'GitHub',
+            'date': '2023-01-01T12:00:00',
+            'summary': 'Merge pull request #123'
+        }]
+        
+        result = self.git_manager._expand_merge_commits(mock_repo, commits_input, "baseline123")
+        
+        # Should still have original commit even if expansion fails
+        assert len(result) == 1
+        assert result[0]['id'] == 'merge123'
+
+    def test_expand_merge_commits_duplicate_prevention(self):
+        """Test that duplicate commits are prevented during expansion"""
+        mock_repo = Mock()
+        
+        # Mock merge commit
+        merge_commit = Mock()
+        merge_commit.hexsha = "merge123"
+        merge_commit.parents = [Mock(), Mock()]
+        
+        # Mock feature commit that's already in the original list
+        feature_commit = Mock()
+        feature_commit.hexsha = "feature1"  # Same as one in commits_input
+        feature_commit.message = "Feature commit"
+        feature_commit.summary = "Feature commit"
+        feature_commit.author = "Developer"
+        feature_commit.committed_datetime.isoformat.return_value = "2023-01-01T10:00:00"
+        
+        mock_repo.commit.return_value = merge_commit
+        mock_repo.iter_commits.return_value = [feature_commit]
+        
+        commits_input = [
+            {
+                'id': 'merge123',
+                'short_id': 'merge12',
+                'message': 'Merge pull request #123',
+                'author': 'GitHub',
+                'date': '2023-01-01T12:00:00',
+                'summary': 'Merge pull request #123'
+            },
+            {
+                'id': 'feature1',  # Already in commits
+                'short_id': 'feature',
+                'message': 'Feature commit',
+                'author': 'Developer',
+                'date': '2023-01-01T10:00:00',
+                'summary': 'Feature commit'
+            }
+        ]
+        
+        result = self.git_manager._expand_merge_commits(mock_repo, commits_input, "baseline123")
+        
+        # Should not duplicate the feature commit
+        feature_commits = [c for c in result if c['id'] == 'feature1']
+        assert len(feature_commits) == 1

@@ -57,7 +57,7 @@ class TestReleaseAnalyzer:
         mock_git_manager.resolve_commit_reference.side_effect = resolve_commit_side_effect
         
         # Setup commit responses
-        def get_commits_side_effect(repo, from_commit, to_commit):
+        def get_commits_side_effect(repo, from_commit, to_commit, expand_merges=True):
             if from_commit == "prod123" and to_commit == "pre456":
                 return [{"id": "pre456", "message": "Pre commit"}]
             elif from_commit == "pre456" and to_commit == "test789":
@@ -197,7 +197,7 @@ class TestReleaseAnalyzer:
         
         assert result == expected_commits
         self.analyzer.git_manager.get_commits_between.assert_called_once_with(
-            mock_repo, "prod123", "pre456"
+            mock_repo, "prod123", "pre456", expand_merges=True
         )
     
     def test_get_environment_specific_commits_no_baseline(self):
@@ -217,7 +217,7 @@ class TestReleaseAnalyzer:
         
         assert result == expected_commits
         self.analyzer.git_manager.get_commits_between.assert_called_once_with(
-            mock_repo, "HEAD~100", "dev000"
+            mock_repo, "HEAD~100", "dev000", expand_merges=True
         )
     
     def test_get_environment_specific_commits_invalid_env(self):

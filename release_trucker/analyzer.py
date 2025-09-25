@@ -35,10 +35,11 @@ class ProjectAnalysis:
 class ReleaseAnalyzer:
     """Analyzes release differences between environments."""
     
-    def __init__(self):
+    def __init__(self, expand_merge_commits: bool = True):
         self.api_client = ActuatorClient()
         self.git_manager = GitManager()
         self.logger = logging.getLogger(__name__)
+        self.expand_merge_commits = expand_merge_commits
     
     def analyze_project(self, project_config) -> Optional[ProjectAnalysis]:
         """
@@ -152,14 +153,16 @@ class ReleaseAnalyzer:
         if not baseline_env:
             # If no baseline found, show all commits up to current
             self.logger.info(f"No baseline found for {current_env}, showing all commits")
-            return self.git_manager.get_commits_between(repo, "HEAD~100", current_commit)
+            return self.git_manager.get_commits_between(repo, "HEAD~100", current_commit, 
+                                                      expand_merges=self.expand_merge_commits)
         
         baseline_commit = version_infos[baseline_env].commit_id
         
         self.logger.info(f"Comparing {current_env} ({current_commit[:8]}) with {baseline_env} ({baseline_commit[:8]})")
         
         # Get commits that are in current environment but not in baseline
-        return self.git_manager.get_commits_between(repo, baseline_commit, current_commit)
+        return self.git_manager.get_commits_between(repo, baseline_commit, current_commit, 
+                                                  expand_merges=self.expand_merge_commits)
     
     def _extract_jira_tickets(self, commits: List[dict]) -> Set[str]:
         """

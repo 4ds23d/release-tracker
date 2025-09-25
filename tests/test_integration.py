@@ -83,7 +83,7 @@ class TestIntegration:
         
         mock_git_manager.resolve_commit_reference.side_effect = resolve_commit_side_effect
         
-        def get_commits_side_effect(repo, from_commit, to_commit):
+        def get_commits_side_effect(repo, from_commit, to_commit, expand_merges=True):
             if from_commit == "prod123" and to_commit == "pre456":
                 return [{'id': 'pre456', 'short_id': 'pre456ab', 'message': 'Pre commit', 
                         'summary': 'Pre commit', 'author': 'Author 1', 'date': '2023-01-01T12:00:00'}]

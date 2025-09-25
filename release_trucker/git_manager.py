@@ -57,14 +57,15 @@ class GitManager:
             self.logger.error(f"Unexpected error managing repository {project_name}: {e}")
             return None
     
-    def get_commits_between(self, repo: Repo, from_commit: str, to_commit: str) -> List[dict]:
+    def get_commits_between(self, repo: Repo, from_commit: str, to_commit: str, expand_merges: bool = True) -> List[dict]:
         """
-        Get commit messages between two commits.
+        Get commit messages between two commits, optionally expanding merge commits.
         
         Args:
             repo: Git repository object
             from_commit: Starting commit ID (exclusive)
             to_commit: Ending commit ID (inclusive)
+            expand_merges: Whether to expand merge commits to show underlying commits
             
         Returns:
             List of commit information dictionaries
@@ -84,6 +85,9 @@ class GitManager:
                     'date': commit.committed_datetime.isoformat(),
                     'summary': commit.summary
                 })
+            
+            if expand_merges:
+                commit_info = self._expand_merge_commits(repo, commit_info, from_commit)
             
             return commit_info
             
@@ -133,6 +137,76 @@ class GitManager:
             self.logger.debug(f"Error checking tag '{tag_name}': {e}")
             return False
     
+    def _expand_merge_commits(self, repo: Repo, commits: List[dict], baseline_commit: str) -> List[dict]:
+        """
+        Expand merge commits to show the underlying commits that were merged.
+        
+        Args:
+            repo: Git repository object
+            commits: List of commit dictionaries
+            baseline_commit: The baseline commit to compare against
+            
+        Returns:
+            Expanded list of commit information dictionaries
+        """
+        expanded_commits = []
+        seen_commits = set()
+        
+        # First, add all original commits to seen set to avoid duplicates
+        for commit_info in commits:
+            seen_commits.add(commit_info['id'])
+        
+        for commit_info in commits:
+            # Always add the original commit
+            expanded_commits.append(commit_info)
+            
+            try:
+                commit = repo.commit(commit_info['id'])
+                
+                # Check if this is a merge commit (has more than one parent)
+                if len(commit.parents) > 1:
+                    self.logger.debug(f"Expanding merge commit {commit.hexsha[:8]}: {commit.summary}")
+                    
+                    # For merge commits, get all commits from the merged branch(es)
+                    # that are not already in the baseline
+                    for parent in commit.parents[1:]:  # Skip first parent (main branch)
+                        try:
+                            # Get commits from baseline to this parent
+                            parent_range = f"{baseline_commit}..{parent.hexsha}"
+                            parent_commits = list(repo.iter_commits(parent_range))
+                            
+                            # Add commits that haven't been seen yet
+                            for parent_commit in reversed(parent_commits):  # Reverse to maintain chronological order
+                                if parent_commit.hexsha not in seen_commits:
+                                    parent_commit_info = {
+                                        'id': parent_commit.hexsha,
+                                        'short_id': parent_commit.hexsha[:8],
+                                        'message': parent_commit.message.strip(),
+                                        'author': str(parent_commit.author),
+                                        'date': parent_commit.committed_datetime.isoformat(),
+                                        'summary': parent_commit.summary,
+                                        'is_merged_commit': True  # Mark as merged commit for identification
+                                    }
+                                    expanded_commits.append(parent_commit_info)
+                                    seen_commits.add(parent_commit.hexsha)
+                                    
+                        except GitCommandError as e:
+                            self.logger.debug(f"Could not expand merge parent {parent.hexsha[:8]}: {e}")
+                            continue
+                            
+            except Exception as e:
+                self.logger.debug(f"Error expanding commit {commit_info['id'][:8]}: {e}")
+                continue
+        
+        # Sort by date to maintain chronological order
+        try:
+            expanded_commits.sort(key=lambda x: x['date'])
+        except Exception as e:
+            self.logger.debug(f"Could not sort commits by date: {e}")
+        
+        self.logger.debug(f"Expanded {len(commits)} commits to {len(expanded_commits)} commits")
+        return expanded_commits
+
     def cleanup_repos(self):
         """Remove all cloned repositories."""
         if self.repos_dir.exists():
